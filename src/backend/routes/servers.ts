@@ -13,15 +13,18 @@ import { r2Storage } from '../services/storage.js';
 
 export const serversRouter = Router();
 
-// Apply auth to all server routes
 serversRouter.use(authMiddleware);
 
-// GET /api/v1/servers - List user servers with real Render status
+// ================================================================
+// GET /api/v1/servers
+// ================================================================
+
 serversRouter.get(
   '/',
   requirePermission('servers.read'),
   async (req: AuthenticatedRequest, res) => {
     const user = req.user!;
+
     const isAdmin =
       user.role === 'ADMIN' ||
       user.role === 'SUPER_ADMIN';
@@ -81,12 +84,15 @@ serversRouter.get(
                 rService.dashboardUrl ||
                 server.dashboardUrl;
 
-              db.updateServer(server.id, {
-                status: normalized,
-                rawRenderStatus: rawStatus,
-                serviceUrl,
-                dashboardUrl,
-              });
+              db.updateServer(
+                server.id,
+                {
+                  status: normalized,
+                  rawRenderStatus: rawStatus,
+                  serviceUrl,
+                  dashboardUrl,
+                }
+              );
 
               return {
                 ...server,
@@ -115,7 +121,10 @@ serversRouter.get(
   }
 );
 
-// POST /api/v1/servers - Create a real Render service
+// ================================================================
+// POST /api/v1/servers
+// ================================================================
+
 serversRouter.post(
   '/',
   requirePermission('servers.create'),
@@ -194,9 +203,9 @@ serversRouter.post(
         string
       > = {};
 
-      // ----------------------------------------------------------
+      // ==========================================================
       // Discord Bot Template
-      // ----------------------------------------------------------
+      // ==========================================================
 
       if (
         initialTemplate ===
@@ -211,15 +220,11 @@ serversRouter.post(
                   /[^a-z0-9]/g,
                   '-'
                 )}`,
-
               version: '1.0.0',
-
               main: 'index.js',
-
               scripts: {
                 start: 'node index.js',
               },
-
               dependencies: {
                 'discord.js':
                   '^14.16.3',
@@ -275,9 +280,9 @@ client.login(
 Managed by ZetaPanel.
 Remember to set DISCORD_TOKEN in the Environment tab!`;
       } else {
-        // --------------------------------------------------------
-        // Empty / Default Template
-        // --------------------------------------------------------
+        // ========================================================
+        // Default Node Template
+        // ========================================================
 
         templateFiles['package.json'] =
           JSON.stringify(
@@ -288,15 +293,11 @@ Remember to set DISCORD_TOKEN in the Environment tab!`;
                   /[^a-z0-9]/g,
                   '-'
                 )}`,
-
               version: '1.0.0',
-
               main: 'index.js',
-
               scripts: {
                 start: 'node index.js',
               },
-
               dependencies: {},
             },
             null,
@@ -342,18 +343,18 @@ Server ID: ${serverId}
 Managed via ZetaPanel & Cloudflare R2.`;
       }
 
-      // ----------------------------------------------------------
+      // ==========================================================
       // Initialize Git repository
-      // ----------------------------------------------------------
+      // ==========================================================
 
       await gitBridge.initializeRepo(
         serverId,
         templateFiles
       );
 
-      // ----------------------------------------------------------
+      // ==========================================================
       // Render Runtime Repository
-      // ----------------------------------------------------------
+      // ==========================================================
 
       if (
         repoType === 'r2_managed'
@@ -371,9 +372,9 @@ Managed via ZetaPanel & Cloudflare R2.`;
           );
       }
 
-      // ----------------------------------------------------------
+      // ==========================================================
       // Mirror initial files to Cloudflare R2
-      // ----------------------------------------------------------
+      // ==========================================================
 
       try {
         for (
@@ -382,7 +383,8 @@ Managed via ZetaPanel & Cloudflare R2.`;
             content,
           ] of Object.entries(
             templateFiles
-          ) {
+          )
+        ) {
           await r2Storage.putFileContent(
             user.id,
             serverId,
@@ -519,7 +521,8 @@ Managed via ZetaPanel & Cloudflare R2.`;
       // ==========================================================
 
       logActivity({
-        userId: user.id,
+        userId:
+          user.id,
 
         username:
           user.username,
