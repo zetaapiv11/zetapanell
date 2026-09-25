@@ -51,11 +51,17 @@ services:
         sync: false
       - key: R2_BUCKET
         value: zetapanel-servers
-      # APP_URL is optional: it's only needed if you're serving ZetaPanel from
-      # a custom domain. If unset, the app falls back to Render's own
-      # RENDER_EXTERNAL_URL (auto-injected for every web service), so the Git
-      # Bridge works out of the box on the default onrender.com URL.
+      # APP_URL is optional. If unset, the app falls back to Render's
+      # RENDER_EXTERNAL_URL for the internal Git bridge.
       - key: APP_URL
         sync: false
+      # Runtime bridge used by Upload ZIP -> Extract -> Run deployments.
+      # This must be a public, cloneable GitHub repository containing
+      # apps/runtime/Dockerfile.
+      - key: ZETAPANEL_RUNTIME_REPO
+        value: https://github.com/zetaapiv11/zetapanell
+      - key: ZETAPANEL_RUNTIME_BRANCH
+        value: main
+      # Shown on /pricing and quota messages.
       - key: ADMIN_WHATSAPP_NUMBER
-        value: "6283195426349" # digits only, country code first (no +) -- shown on /pricing & quota messages
+        value: "6283195426349" # digits only, country code first (no +)
