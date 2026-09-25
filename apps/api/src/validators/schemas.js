@@ -16,15 +16,26 @@ export const envVarSchema = z.object({
   value: z.string(),
 });
 
-export const createServerSchema = z.object({
+// Normalize legacy UI fields from the Angular form (`repoType` / `repoUrl`)
+// into the API contract expected by the server (`deploymentSource` / `repository`).
+const createServerInputSchema = z.preprocess((raw) => {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return raw;
+
+  const input = raw;
+
+  return {
+    ...input,
+    deploymentSource:
+      input.deploymentSource ??
+      (input.repoType === 'r2_managed' ? 'r2_zip' : 'git'),
+    repository: input.repository ?? input.repoUrl,
+  };
+}, z.object({
   name: z.string().min(3).max(64),
   serviceType: z.enum(RENDER_SERVICE_TYPES),
   runtime: z.enum(['node', 'python', 'ruby', 'go', 'elixir', 'rust', 'docker']),
   region: z.string().min(1),
   plan: z.string().min(1),
-  // 'git' (default): repository is required, Render builds from that repo.
-  // 'r2_zip': deploy from a project uploaded via the File Manager instead —
-  // repository is not required; see renderServices.buildR2BridgeServicePayload.
   deploymentSource: z.enum(['git', 'r2_zip']).default('git'),
   repository: z.string().url().optional(),
   branch: z.string().min(1).default('main'),
@@ -40,7 +51,9 @@ export const createServerSchema = z.object({
 }).refine((data) => data.deploymentSource !== 'r2_zip' || !!data.startCommand, {
   message: 'startCommand is required when deploymentSource is "r2_zip".',
   path: ['startCommand'],
-});
+}));
+
+export const createServerSchema = createServerInputSchema;
 
 export const updateStartupSchema = z.object({
   buildCommand: z.string().max(500).optional(),
