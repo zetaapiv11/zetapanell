@@ -1,13 +1,12 @@
 # Render Blueprint Specification for ZetaPanel
-# Deploy ZetaPanel Web Service + Render PostgreSQL in 1-Click
 version: "1"
 
 databases:
   - name: zetapanel-db
     databaseName: zetapanel
     user: zetapanel_user
-    plan: basic-256mb # or starter / free
-    region: oregon # or singapore, frankfurt, ohio
+    plan: basic-256mb
+    region: oregon
 
 services:
   - type: web
@@ -19,13 +18,12 @@ services:
     startCommand: npm run serve:ssr:app
     healthCheckPath: /api/v1/health
     autoDeploy: true
-    # Persistent disk: ZetaPanel stores its user/server/api-key data as a local
-    # JSON file and stores Git Bridge repos on disk. Without this disk, that
-    # data is wiped every time the service redeploys or restarts.
+
     disk:
       name: zetapanel-data
       mountPath: /data
       sizeGB: 1
+
     envVars:
       - key: PORT
         value: 3000
@@ -51,17 +49,15 @@ services:
         sync: false
       - key: R2_BUCKET
         value: zetapanel-servers
-      # APP_URL is optional. If unset, the app falls back to Render's
-      # RENDER_EXTERNAL_URL for the internal Git bridge.
       - key: APP_URL
         sync: false
-      # Runtime bridge used by Upload ZIP -> Extract -> Run deployments.
-      # This must be a public, cloneable GitHub repository containing
-      # apps/runtime/Dockerfile.
+
+      # ZIP runtime bridge
       - key: ZETAPANEL_RUNTIME_REPO
         value: https://github.com/zetaapiv11/zetapanell
       - key: ZETAPANEL_RUNTIME_BRANCH
         value: main
-      # Shown on /pricing and quota messages.
+
+      # WhatsApp
       - key: ADMIN_WHATSAPP_NUMBER
-        value: "6283195426349" # digits only, country code first (no +)
+        value: "6283195426349"
