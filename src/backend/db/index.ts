@@ -44,7 +44,16 @@ class Database {
 
   constructor() {
     this.filePath = join(config.dataDir, 'zetapanel.db.json');
-    this.ensureDirs();
+    try {
+      this.ensureDirs();
+    } catch (e) {
+      // During the Angular SSR build's route-extraction step, this module is
+      // imported and instantiated before the persistent disk (/data) is
+      // actually mounted (disks only attach at runtime, not build time), so
+      // mkdir can fail here. Swallow it so the build doesn't crash — at real
+      // runtime the disk exists and this succeeds normally.
+      console.warn('[DB] ensureDirs failed (expected during build if DATA_DIR is not yet mounted):', e);
+    }
     this.data = this.loadData();
     this.seedDefaultAdmin();
   }
