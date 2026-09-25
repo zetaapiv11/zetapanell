@@ -209,6 +209,42 @@ export class RenderApiClient {
       });
     }
 
+    const runtime = params.env || 'node';
+    const serviceDetails: any = {
+      runtime,
+      plan: params.plan || 'starter',
+      region: params.region || 'oregon',
+    };
+
+    // Render's current API requires build/start commands nested under
+    // envSpecificDetails (not flat on serviceDetails) for every non-static,
+    // non-docker-image service. Docker-runtime services use a different
+    // envSpecificDetails shape (dockerfilePath etc.) instead of build/start
+    // commands, since the Dockerfile defines both.
+    if (runtime === 'docker') {
+      serviceDetails.envSpecificDetails = {
+        dockerfilePath: './Dockerfile',
+      };
+    } else {
+      serviceDetails.envSpecificDetails = {
+        buildCommand: params.buildCommand || '',
+        startCommand: params.startCommand || '',
+      };
+    }
+
+    if (params.preDeployCommand) {
+      serviceDetails.preDeployCommand = params.preDeployCommand;
+    }
+    if (params.healthCheckPath && params.type === 'web_service') {
+      serviceDetails.healthCheckPath = params.healthCheckPath;
+    }
+    if (params.envVars && params.envVars.length > 0) {
+      serviceDetails.envVars = params.envVars.map((v) => ({
+        key: v.key,
+        value: v.value,
+      }));
+    }
+
     const payload: any = {
       type: params.type,
       name: params.name
@@ -221,27 +257,8 @@ export class RenderApiClient {
       repo: params.repo,
       branch: params.branch || 'main',
       autoDeploy: params.autoDeploy ? 'yes' : 'no',
-      serviceDetails: {
-        env: params.env || 'node',
-        plan: params.plan || 'starter',
-        region: params.region || 'oregon',
-        buildCommand: params.buildCommand,
-        startCommand: params.startCommand,
-      },
+      serviceDetails,
     };
-
-    if (params.preDeployCommand) {
-      payload.serviceDetails.preDeployCommand = params.preDeployCommand;
-    }
-    if (params.healthCheckPath && params.type === 'web_service') {
-      payload.serviceDetails.healthCheckPath = params.healthCheckPath;
-    }
-    if (params.envVars && params.envVars.length > 0) {
-      payload.serviceDetails.envVars = params.envVars.map((v) => ({
-        key: v.key,
-        value: v.value,
-      }));
-    }
 
     const res = await this.request<any>('/services', {
       method: 'POST',
@@ -271,7 +288,20 @@ export class RenderApiClient {
       body.autoDeploy = updates.autoDeploy ? 'yes' : 'no';
     }
     if (updates.serviceDetails) {
-      body.serviceDetails = updates.serviceDetails;
+      const { buildCommand, startCommand, plan } = updates.serviceDetails;
+      const serviceDetails: any = {};
+      if (plan) serviceDetails.plan = plan;
+      // Same nesting requirement as createService: build/start commands live
+      // under envSpecificDetails, not flat on serviceDetails.
+      if (buildCommand !== undefined || startCommand !== undefined) {
+        serviceDetails.envSpecificDetails = {
+          ...(buildCommand !== undefined ? { buildCommand } : {}),
+          ...(startCommand !== undefined ? { startCommand } : {}),
+        };
+      }
+      if (Object.keys(serviceDetails).length > 0) {
+        body.serviceDetails = serviceDetails;
+      }
     }
 
     const res = await this.request<any>(`/services/${serviceId}`, {
