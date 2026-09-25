@@ -36,6 +36,10 @@ const DEFAULT_SETTINGS: SystemSettings = {
   r2AccessKeyId: config.r2AccessKeyId,
   r2SecretAccessKey: config.r2SecretAccessKey,
   r2Bucket: config.r2Bucket,
+  githubToken: config.githubToken,
+  githubOwner: config.githubOwner,
+  githubOwnerType: config.githubOwnerType,
+  githubVisibility: config.githubVisibility,
 };
 
 class Database {
