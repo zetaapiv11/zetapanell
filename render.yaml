@@ -6,7 +6,7 @@ databases:
   - name: zetapanel-db
     databaseName: zetapanel
     user: zetapanel_user
-    plan: standard # or starter / free
+    plan: basic-256mb # or starter / free
     region: oregon # or singapore, frankfurt, ohio
 
 services:
