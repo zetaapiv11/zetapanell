@@ -1,0 +1,61 @@
+# Render Blueprint Specification for ZetaPanel
+# Deploy ZetaPanel Web Service + Render PostgreSQL in 1-Click
+version: "1"
+
+databases:
+  - name: zetapanel-db
+    databaseName: zetapanel
+    user: zetapanel_user
+    plan: standard # or starter / free
+    region: oregon # or singapore, frankfurt, ohio
+
+services:
+  - type: web
+    name: zetapanel-control-plane
+    runtime: node
+    region: oregon
+    plan: starter
+    buildCommand: npm install && npm run build
+    startCommand: npm run serve:ssr:app
+    healthCheckPath: /api/v1/health
+    autoDeploy: true
+    # Persistent disk: ZetaPanel stores its user/server/api-key data as a local
+    # JSON file and stores Git Bridge repos on disk. Without this disk, that
+    # data is wiped every time the service redeploys or restarts.
+    disk:
+      name: zetapanel-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: NODE_ENV
+        value: production
+      - key: DATA_DIR
+        value: /data
+      - key: DATABASE_URL
+        fromDatabase:
+          name: zetapanel-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: RENDER_API_KEY
+        sync: false # Admin will paste their rnd_... API key
+      - key: RENDER_OWNER_ID
+        sync: false
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET
+        value: zetapanel-servers
+      # APP_URL is optional: it's only needed if you're serving ZetaPanel from
+      # a custom domain. If unset, the app falls back to Render's own
+      # RENDER_EXTERNAL_URL (auto-injected for every web service), so the Git
+      # Bridge works out of the box on the default onrender.com URL.
+      - key: APP_URL
+        sync: false
+      - key: ADMIN_WHATSAPP_NUMBER
+        value: "6285762557515" # digits only, country code first (no +) -- shown on /pricing & quota messages
