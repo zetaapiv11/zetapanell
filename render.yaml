@@ -1,12 +1,13 @@
 # Render Blueprint Specification for ZetaPanel
+# Deploy ZetaPanel Web Service + Render PostgreSQL in 1-Click
 version: "1"
 
 databases:
   - name: zetapanel-db
     databaseName: zetapanel
     user: zetapanel_user
-    plan: basic-256mb
-    region: oregon
+    plan: basic-256mb # legacy 'standard' plan replaced — 256MB tier is enough for ZetaPanel's small metadata DB
+    region: oregon # or singapore, frankfurt, ohio
 
 services:
   - type: web
@@ -18,12 +19,13 @@ services:
     startCommand: npm run serve:ssr:app
     healthCheckPath: /api/v1/health
     autoDeploy: true
-
+    # Persistent disk: ZetaPanel stores its user/server/api-key data as a local
+    # JSON file and stores Git Bridge repos on disk. Without this disk, that
+    # data is wiped every time the service redeploys or restarts.
     disk:
       name: zetapanel-data
       mountPath: /data
       sizeGB: 1
-
     envVars:
       - key: PORT
         value: 3000
@@ -38,7 +40,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: RENDER_API_KEY
-        sync: false
+        sync: false # Admin will paste their rnd_... API key
       - key: RENDER_OWNER_ID
         sync: false
       - key: R2_ACCOUNT_ID
@@ -49,9 +51,19 @@ services:
         sync: false
       - key: R2_BUCKET
         value: zetapanel-servers
+      - key: GITHUB_TOKEN
+        sync: false # Personal Access Token with 'repo' scope -- required for R2-managed servers to deploy
+      - key: GITHUB_OWNER
+        sync: false # optional, defaults to the token's own account
+      - key: GITHUB_OWNER_TYPE
+        value: user # change to 'org' if GITHUB_OWNER above is an organization
+      - key: GITHUB_REPO_VISIBILITY
+        value: private
+      # APP_URL is optional: it's only needed if you're serving ZetaPanel from
+      # a custom domain. If unset, the app falls back to Render's own
+      # RENDER_EXTERNAL_URL (auto-injected for every web service), so the Git
+      # Bridge works out of the box on the default onrender.com URL.
       - key: APP_URL
         sync: false
-
-      # WhatsApp
       - key: ADMIN_WHATSAPP_NUMBER
-        value: "6283195426349"
+        value: "6283195426349" # digits only, country code first (no +) -- shown on /pricing & quota messages
