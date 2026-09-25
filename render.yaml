@@ -52,12 +52,6 @@ services:
       - key: APP_URL
         sync: false
 
-      # ZIP runtime bridge
-      - key: ZETAPANEL_RUNTIME_REPO
-        value: https://github.com/zetaapiv11/zetapanell
-      - key: ZETAPANEL_RUNTIME_BRANCH
-        value: main
-
       # WhatsApp
       - key: ADMIN_WHATSAPP_NUMBER
         value: "6283195426349"
