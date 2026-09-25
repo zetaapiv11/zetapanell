@@ -40,7 +40,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: RENDER_API_KEY
-        sync: false # Admin will paste their rnd_... API key
+        sync: false
       - key: RENDER_OWNER_ID
         sync: false
       - key: R2_ACCOUNT_ID
@@ -58,4 +58,4 @@ services:
       - key: APP_URL
         sync: false
       - key: ADMIN_WHATSAPP_NUMBER
-        value: "6285762557515" # digits only, country code first (no +) -- shown on /pricing & quota messages
+        value: "6283195426349" # digits only, country code first (no +) -- shown on /pricing & quota messages
