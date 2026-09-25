@@ -2,6 +2,8 @@ import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { config } from '../config.js';
+import { db } from '../db/index.js';
+import { githubService, GithubRepoInfo } from './github.js';
 import { r2Storage } from './storage.js';
 
 export class GitBridgeService {
@@ -9,6 +11,13 @@ export class GitBridgeService {
     return join(config.reposDir, serverId);
   }
 
+  /**
+   * @deprecated Render no longer accepts self-hosted git remotes for a
+   * service's `repo` field (only github.com/gitlab.com/bitbucket.org/
+   * cursor.com are accepted) — kept only so the /api/v1/git/:id route still
+   * serves something if anyone still has it bookmarked. Use
+   * publishToGithub() for anything that actually needs to reach Render.
+   */
   getPublicRepoUrl(serverId: string): string {
     const baseUrl = config.appUrl.replace(/\/+$/, '');
     return `${baseUrl}/api/v1/git/${serverId}.git`;
@@ -55,6 +64,51 @@ export class GitBridgeService {
     await this.runGitCommand(['commit', '-m', 'Initial commit from ZetaPanel'], repoPath);
   }
 
+  /**
+   * Creates (idempotent) the GitHub repo for this server, points the local
+   * bare working copy's `origin` remote at it, force-pushes `main`, and
+   * stores the resulting repo full name on the server record so future
+   * pushes (via pushExisting) don't need to hit the create-repo API again.
+   * Returns the https://github.com/... URL to hand Render as `repo`.
+   */
+  async publishToGithub(serverId: string, nameHint: string): Promise<GithubRepoInfo> {
+    const repoPath = this.getRepoPath(serverId);
+    const info = await githubService.ensureRepo(serverId, nameHint);
+
+    await this.setGithubRemote(repoPath, info.pushUrl);
+    await this.runGitCommand(['push', '-f', 'origin', 'main'], repoPath);
+
+    db.updateServer(serverId, { githubRepoFullName: info.fullName });
+    return info;
+  }
+
+  /**
+   * Pushes the current local commit to a GitHub repo already created for
+   * this server (via publishToGithub). Used by syncFromR2 after every
+   * upload so GitHub — and therefore Render — always mirrors R2's content.
+   */
+  async pushExisting(serverId: string): Promise<void> {
+    const server = db.getServerById(serverId);
+    if (!server?.githubRepoFullName) {
+      // Never published yet (e.g. server created before this feature, or
+      // repoType is 'git' pointing at a user-owned repo) — nothing to push.
+      return;
+    }
+    const repoPath = this.getRepoPath(serverId);
+    const pushUrl = githubService.buildPushUrl(server.githubRepoFullName);
+    await this.setGithubRemote(repoPath, pushUrl);
+    await this.runGitCommand(['push', '-f', 'origin', 'main'], repoPath);
+  }
+
+  private async setGithubRemote(repoPath: string, pushUrl: string): Promise<void> {
+    try {
+      await this.runGitCommand(['remote', 'remove', 'origin'], repoPath);
+    } catch {
+      // No existing remote — fine.
+    }
+    await this.runGitCommand(['remote', 'add', 'origin', pushUrl], repoPath);
+  }
+
   async syncFromR2(userId: string, serverId: string): Promise<boolean> {
     try {
       const repoPath = this.getRepoPath(serverId);
@@ -90,6 +144,11 @@ export class GitBridgeService {
           );
         } catch {
           // Clean working tree, nothing to commit
+        }
+        try {
+          await this.pushExisting(serverId);
+        } catch (pushErr) {
+          console.warn(`[GitBridge] Push to GitHub failed for ${serverId}:`, pushErr);
         }
         return true;
       }
