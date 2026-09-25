@@ -203,6 +203,7 @@ serversRouter.post('/', requirePermission('servers.create'), async (req: Authent
       plan,
       repoType: repoType === 'r2_managed' ? 'r2_managed' : 'git',
       repoUrl: finalRepoUrl,
+      githubRepoFullName: repoType === 'r2_managed' ? finalRepoUrl.replace(/^https:\/\/github\.com\//, '') : undefined,
       branch,
       buildCommand,
       startCommand,
