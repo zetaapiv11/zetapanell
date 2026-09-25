@@ -18,6 +18,23 @@ export const config = {
   r2SecretAccessKey: process.env['R2_SECRET_ACCESS_KEY'] || '',
   r2Bucket: process.env['R2_BUCKET'] || 'zetapanel-servers',
   r2PublicUrl: process.env['R2_PUBLIC_URL'] || '',
+
+  // GitHub configuration — Git Bridge pushes each server's files to a real
+  // GitHub repo here (Render no longer accepts self-hosted git remotes as a
+  // service's `repo`; only github.com/gitlab.com/bitbucket.org/cursor.com
+  // are accepted). Needs a Personal Access Token with the 'repo' scope.
+  // IMPORTANT: the Render account itself must ALSO have GitHub connected
+  // under Account Settings > Git Deployment Credentials (one-time, manual —
+  // there's no API for it), or Render will refuse to clone repos under this
+  // owner even though the token above can create/push to them fine.
+  githubToken: process.env['GITHUB_TOKEN'] || '',
+  // Username or org that repos get created under. Defaults to the token's
+  // own account (resolved at runtime via GET /user) if left blank.
+  githubOwner: process.env['GITHUB_OWNER'] || '',
+  // 'user' if githubOwner is a personal account, 'org' if it's an organization.
+  githubOwnerType: (process.env['GITHUB_OWNER_TYPE'] || 'user') as 'user' | 'org',
+  // 'private' (default) or 'public'.
+  githubVisibility: (process.env['GITHUB_REPO_VISIBILITY'] || 'private') as 'private' | 'public',
   
   // App URL for Git bridge and webhooks.
   // Priority: explicit APP_URL (e.g. a custom domain) > Render's own
