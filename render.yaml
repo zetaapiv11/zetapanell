@@ -58,7 +58,7 @@ services:
       - key: GITHUB_OWNER_TYPE
         value: user # change to 'org' if GITHUB_OWNER above is an organization
       - key: GITHUB_REPO_VISIBILITY
-        value: private
+        value: public
       # APP_URL is optional: it's only needed if you're serving ZetaPanel from
       # a custom domain. If unset, the app falls back to Render's own
       # RENDER_EXTERNAL_URL (auto-injected for every web service), so the Git
