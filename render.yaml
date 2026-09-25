@@ -15,7 +15,7 @@ services:
     runtime: node
     region: oregon
     plan: starter
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm run serve:ssr:app
     healthCheckPath: /api/v1/health
     autoDeploy: true
