@@ -36,6 +36,10 @@ export interface ServerRecord {
   plan: string;
   repoType: 'git' | 'r2_managed';
   repoUrl: string;
+  // Set only for repoType 'r2_managed' — the real GitHub repo ("owner/name")
+  // that Git Bridge pushes R2 file syncs into, since Render's `repo` field
+  // only accepts github.com/gitlab.com/bitbucket.org/cursor.com URLs.
+  githubRepoFullName?: string;
   branch: string;
   buildCommand: string;
   startCommand: string;
@@ -93,4 +97,8 @@ export interface SystemSettings {
   r2AccessKeyId: string;
   r2SecretAccessKey: string;
   r2Bucket: string;
+  githubToken: string;
+  githubOwner: string;
+  githubOwnerType: 'user' | 'org';
+  githubVisibility: 'private' | 'public';
 }
