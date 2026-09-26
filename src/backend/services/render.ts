@@ -54,6 +54,34 @@ export interface RenderDeploy {
   finishedAt?: string;
 }
 
+export interface MetricPoint {
+  timestamp: string;
+  value: number;
+}
+
+export interface MetricSeries {
+  labels?: Array<{ field: string; value: string }>;
+  values: MetricPoint[];
+  unit?: string;
+}
+
+export interface ResourceMetricsSummary {
+  cpuPercent: number | null;
+  memoryBytes: number | null;
+  memoryUnit?: string;
+  diskUsedBytes: number | null;
+  diskCapacityBytes: number | null;
+  diskUnit?: string;
+  bandwidthBytesPerSec: number | null;
+  bandwidthUnit?: string;
+  series: {
+    cpu: MetricSeries[];
+    memory: MetricSeries[];
+    diskUsage: MetricSeries[];
+    bandwidth: MetricSeries[];
+  };
+}
+
 export class RenderApiClient {
   private baseUrl = 'https://api.render.com/v1';
 
@@ -449,6 +477,58 @@ export class RenderApiClient {
     } catch (e: any) {
       return [`[${new Date().toLocaleTimeString()}] [ERROR] Unable to retrieve logs: ${e.message}`];
     }
+  }
+
+  // --- Resource Metrics (CPU / RAM / Disk / Network) ---
+  async getResourceMetrics(serviceId: string, rangeMinutes = 30): Promise<ResourceMetricsSummary> {
+    const endTime = Math.floor(Date.now() / 1000);
+    const startTime = endTime - rangeMinutes * 60;
+    // Finer resolution for short ranges, coarser for long ones so we don't
+    // pull back thousands of points for a 24h+ view.
+    const resolutionSeconds = rangeMinutes <= 30 ? 60 : rangeMinutes <= 180 ? 300 : 900;
+    const qs = `resource=${encodeURIComponent(serviceId)}&startTime=${startTime}&endTime=${endTime}&resolutionSeconds=${resolutionSeconds}`;
+
+    const fetchSeries = async (path: string): Promise<MetricSeries[]> => {
+      try {
+        const res = await this.request<MetricSeries[]>(`${path}?${qs}`);
+        return Array.isArray(res) ? res : [];
+      } catch (e) {
+        // Disk metrics 404/empty for services with no persistent disk attached
+        // (most R2-managed scripts) -- that's expected, not a real failure.
+        console.warn(`[Render API] Metrics fetch failed for ${path}:`, e);
+        return [];
+      }
+    };
+
+    const [cpu, memory, diskUsage, diskCapacity, bandwidth] = await Promise.all([
+      fetchSeries('/metrics/cpu'),
+      fetchSeries('/metrics/memory'),
+      fetchSeries('/metrics/disk-usage'),
+      fetchSeries('/metrics/disk-capacity'),
+      fetchSeries('/metrics/bandwidth'),
+    ]);
+
+    const latest = (series: MetricSeries[]): number | null => {
+      const s = series[0];
+      if (!s?.values?.length) return null;
+      return s.values[s.values.length - 1].value;
+    };
+
+    const cpuLatest = latest(cpu);
+
+    return {
+      // Render's CPU metric is a fraction of one vCPU (e.g. 0.42 = 42% of one
+      // core), so *100 gives a familiar percentage.
+      cpuPercent: cpuLatest !== null ? Math.round(cpuLatest * 100) : null,
+      memoryBytes: latest(memory),
+      memoryUnit: memory[0]?.unit,
+      diskUsedBytes: latest(diskUsage),
+      diskCapacityBytes: latest(diskCapacity),
+      diskUnit: diskUsage[0]?.unit,
+      bandwidthBytesPerSec: latest(bandwidth),
+      bandwidthUnit: bandwidth[0]?.unit,
+      series: { cpu, memory, diskUsage, bandwidth },
+    };
   }
 
   // --- Status Normalization ---
