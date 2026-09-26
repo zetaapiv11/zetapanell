@@ -10,82 +10,116 @@ import { ToastService } from '../../core/services/toast.service.js';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [ReactiveFormsModule, MatIconModule],
   template: `
-    <div class="space-y-6">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-800 pb-4">
-        <div>
-          <div class="flex items-center gap-2">
-            <h1 class="text-xl font-bold tracking-tight text-white">ZetaPanel Administration</h1>
-            <span class="px-2 py-0.5 rounded bg-emerald-950 border border-emerald-800 text-[10px] font-mono text-emerald-300 font-semibold uppercase">Super Admin</span>
-          </div>
-          <p class="text-xs text-neutral-400 mt-0.5">
-            Manage users, configure Render API connection, test Cloudflare R2, and system limits.
-          </p>
+    <div class="space-y-4">
+      <div class="border-b border-neutral-700 pb-3">
+        <div class="flex items-center gap-2">
+          <h1 class="text-xl font-medium tracking-normal text-neutral-50">ZetaPanel Administration</h1>
+          <span class="px-2 py-0.5 rounded bg-blue-950 border border-blue-800 text-[10px] font-mono text-blue-300 font-semibold uppercase">Super Admin</span>
         </div>
-
-        <!-- Admin Tab Buttons -->
-        <div class="flex items-center gap-1 p-1 bg-neutral-900 border border-neutral-800 rounded-xl overflow-x-auto text-xs">
-          <button
-            type="button"
-            (click)="activeTab.set('overview')"
-            class="px-3 py-1.5 rounded-lg font-medium transition-colors cursor-pointer"
-            [class.bg-neutral-800]="activeTab() === 'overview'"
-            [class.text-white]="activeTab() === 'overview'"
-            [class.text-neutral-400]="activeTab() !== 'overview'"
-          >
-            Overview
-          </button>
-          <button
-            type="button"
-            (click)="activeTab.set('users')"
-            class="px-3 py-1.5 rounded-lg font-medium transition-colors cursor-pointer"
-            [class.bg-neutral-800]="activeTab() === 'users'"
-            [class.text-white]="activeTab() === 'users'"
-            [class.text-neutral-400]="activeTab() !== 'users'"
-          >
-            Users
-          </button>
-          <button
-            type="button"
-            (click)="activeTab.set('infrastructure')"
-            class="px-3 py-1.5 rounded-lg font-medium transition-colors cursor-pointer"
-            [class.bg-neutral-800]="activeTab() === 'infrastructure'"
-            [class.text-white]="activeTab() === 'infrastructure'"
-            [class.text-neutral-400]="activeTab() !== 'infrastructure'"
-          >
-            Render &amp; Storage
-          </button>
-          <button
-            type="button"
-            (click)="activeTab.set('settings')"
-            class="px-3 py-1.5 rounded-lg font-medium transition-colors cursor-pointer"
-            [class.bg-neutral-800]="activeTab() === 'settings'"
-            [class.text-white]="activeTab() === 'settings'"
-            [class.text-neutral-400]="activeTab() !== 'settings'"
-          >
-            System Limits
-          </button>
-        </div>
+        <p class="text-xs text-neutral-400 mt-0.5">
+          Manage users, configure Render API connection, test Cloudflare R2, and system limits.
+        </p>
       </div>
 
+      <!-- Admin Sidebar Nav -- matches the real Pterodactyl admin area's left
+           sidebar (categorized section headers + icon/label items), adapted
+           to ZetaPanel's own 4 sections instead of the game-server-specific
+           ones (Nodes/Locations/Nests/Mounts) that don't apply here. -->
+      <div class="flex flex-col lg:flex-row gap-4">
+        <aside class="lg:w-56 shrink-0">
+          <nav class="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0">
+            <div class="lg:mb-3 shrink-0 lg:shrink">
+              <div class="hidden lg:block px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
+                Basic Administration
+              </div>
+              <button
+                type="button"
+                (click)="activeTab.set('overview')"
+                class="w-full flex items-center gap-2.5 px-3 py-2 rounded text-xs font-medium transition-colors cursor-pointer whitespace-nowrap"
+                [class.bg-neutral-700]="activeTab() === 'overview'"
+                [class.text-neutral-50]="activeTab() === 'overview'"
+                [class.border-l-2]="activeTab() === 'overview'"
+                [class.border-blue-500]="activeTab() === 'overview'"
+                [class.text-neutral-300]="activeTab() !== 'overview'"
+              >
+                <mat-icon class="text-base">home</mat-icon>
+                <span>Overview</span>
+              </button>
+            </div>
+
+            <div class="lg:mb-3 shrink-0 lg:shrink">
+              <div class="hidden lg:block px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
+                Management
+              </div>
+              <button
+                type="button"
+                (click)="activeTab.set('users')"
+                class="w-full flex items-center gap-2.5 px-3 py-2 rounded text-xs font-medium transition-colors cursor-pointer whitespace-nowrap"
+                [class.bg-neutral-700]="activeTab() === 'users'"
+                [class.text-neutral-50]="activeTab() === 'users'"
+                [class.border-l-2]="activeTab() === 'users'"
+                [class.border-blue-500]="activeTab() === 'users'"
+                [class.text-neutral-300]="activeTab() !== 'users'"
+              >
+                <mat-icon class="text-base">group</mat-icon>
+                <span>Users</span>
+              </button>
+            </div>
+
+            <div class="lg:mb-3 shrink-0 lg:shrink">
+              <div class="hidden lg:block px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
+                Infrastructure
+              </div>
+              <button
+                type="button"
+                (click)="activeTab.set('infrastructure')"
+                class="w-full flex items-center gap-2.5 px-3 py-2 rounded text-xs font-medium transition-colors cursor-pointer whitespace-nowrap"
+                [class.bg-neutral-700]="activeTab() === 'infrastructure'"
+                [class.text-neutral-50]="activeTab() === 'infrastructure'"
+                [class.border-l-2]="activeTab() === 'infrastructure'"
+                [class.border-blue-500]="activeTab() === 'infrastructure'"
+                [class.text-neutral-300]="activeTab() !== 'infrastructure'"
+              >
+                <mat-icon class="text-base">dns</mat-icon>
+                <span>Render &amp; Storage</span>
+              </button>
+              <button
+                type="button"
+                (click)="activeTab.set('settings')"
+                class="w-full flex items-center gap-2.5 px-3 py-2 rounded text-xs font-medium transition-colors cursor-pointer whitespace-nowrap"
+                [class.bg-neutral-700]="activeTab() === 'settings'"
+                [class.text-neutral-50]="activeTab() === 'settings'"
+                [class.border-l-2]="activeTab() === 'settings'"
+                [class.border-blue-500]="activeTab() === 'settings'"
+                [class.text-neutral-300]="activeTab() !== 'settings'"
+              >
+                <mat-icon class="text-base">tune</mat-icon>
+                <span>System Limits</span>
+              </button>
+            </div>
+          </nav>
+        </aside>
+
+        <div class="flex-1 min-w-0">
       <!-- Tab 1: Overview -->
       @if (activeTab() === 'overview') {
         <div class="space-y-6">
           <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="p-4 rounded-xl border border-neutral-800 bg-neutral-900/60">
+            <div class="p-4 rounded border border-neutral-800 bg-neutral-900/60">
               <div class="text-xs text-neutral-400 mb-1">Total Users</div>
               <div class="text-2xl font-bold font-mono tabular-nums text-white">
                 {{ overview()?.usersCount || 0 }}
               </div>
             </div>
 
-            <div class="p-4 rounded-xl border border-neutral-800 bg-neutral-900/60">
+            <div class="p-4 rounded border border-neutral-800 bg-neutral-900/60">
               <div class="text-xs text-neutral-400 mb-1">Total Servers</div>
               <div class="text-2xl font-bold font-mono tabular-nums text-white">
                 {{ overview()?.serversCount || 0 }}
               </div>
             </div>
 
-            <div class="p-4 rounded-xl border border-neutral-800 bg-neutral-900/60">
+            <div class="p-4 rounded border border-neutral-800 bg-neutral-900/60">
               <div class="text-xs text-neutral-400 mb-1">Render API Connection</div>
               <div class="text-sm font-bold font-mono flex items-center gap-1.5 mt-1" [class.text-emerald-400]="overview()?.infrastructure?.renderConnected" [class.text-rose-400]="!overview()?.infrastructure?.renderConnected">
                 <span class="w-2 h-2 rounded-full shrink-0" [class.bg-emerald-400]="overview()?.infrastructure?.renderConnected" [class.bg-rose-400]="!overview()?.infrastructure?.renderConnected"></span>
@@ -93,7 +127,7 @@ import { ToastService } from '../../core/services/toast.service.js';
               </div>
             </div>
 
-            <div class="p-4 rounded-xl border border-neutral-800 bg-neutral-900/60">
+            <div class="p-4 rounded border border-neutral-800 bg-neutral-900/60">
               <div class="text-xs text-neutral-400 mb-1">Cloudflare R2 Bucket</div>
               <div class="text-sm font-bold font-mono text-white truncate mt-1">
                 {{ overview()?.infrastructure?.r2Bucket || 'zetapanel-servers' }}
@@ -102,7 +136,7 @@ import { ToastService } from '../../core/services/toast.service.js';
           </div>
 
           <!-- Breakdown card -->
-          <div class="p-5 rounded-xl border border-neutral-800 bg-neutral-900/40 space-y-3">
+          <div class="p-5 rounded border border-neutral-800 bg-neutral-900/40 space-y-3">
             <h3 class="text-xs font-semibold uppercase tracking-wider text-neutral-400 font-mono">
               Infrastructure Status Breakdown
             </h3>
@@ -136,14 +170,14 @@ import { ToastService } from '../../core/services/toast.service.js';
             <button
               type="button"
               (click)="showCreateUserModal.set(true)"
-              class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold text-white flex items-center gap-1 cursor-pointer transition-colors"
+              class="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold text-white flex items-center gap-1 cursor-pointer transition-colors"
             >
               <mat-icon class="text-sm">person_add</mat-icon>
               <span>Add User</span>
             </button>
           </div>
 
-          <div class="rounded-xl border border-neutral-800 bg-neutral-900/40 overflow-hidden font-mono text-xs">
+          <div class="rounded border border-neutral-800 bg-neutral-900/40 overflow-hidden font-mono text-xs">
             <div class="overflow-x-auto">
               <table class="w-full text-left border-collapse">
                 <thead>
@@ -238,7 +272,7 @@ import { ToastService } from '../../core/services/toast.service.js';
       @if (activeTab() === 'infrastructure') {
         <div class="max-w-3xl space-y-6">
           <!-- Render API Key & Test Connection (Section 36) -->
-          <div class="p-5 rounded-xl border border-neutral-800 bg-neutral-900/60 space-y-4">
+          <div class="p-5 rounded border border-neutral-800 bg-neutral-900/60 space-y-4">
             <div class="flex items-center justify-between">
               <div>
                 <h3 class="text-xs font-semibold uppercase tracking-wider text-neutral-400 font-mono flex items-center gap-2">
@@ -254,7 +288,7 @@ import { ToastService } from '../../core/services/toast.service.js';
                 type="button"
                 (click)="testRender()"
                 [disabled]="testingRender()"
-                class="px-3 py-1.5 rounded-lg border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-200 text-xs font-medium flex items-center gap-1.5 cursor-pointer"
+                class="px-3 py-1.5 rounded border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-200 text-xs font-medium flex items-center gap-1.5 cursor-pointer"
               >
                 <mat-icon class="text-sm" [class.animate-spin]="testingRender()">network_check</mat-icon>
                 <span>Test Connection</span>
@@ -268,7 +302,7 @@ import { ToastService } from '../../core/services/toast.service.js';
                   type="password"
                   [formControl]="renderApiKeyControl"
                   placeholder="rnd_xxxxxxxxxxxxxxxxxxxxxxxx"
-                  class="w-full bg-neutral-950 border border-neutral-800 focus:border-emerald-500 rounded-lg px-3 py-2 text-white outline-none"
+                  class="w-full bg-neutral-950 border border-neutral-800 focus:border-emerald-500 rounded px-3 py-2 text-white outline-none"
                 />
               </div>
 
@@ -279,7 +313,7 @@ import { ToastService } from '../../core/services/toast.service.js';
                     type="text"
                     [formControl]="renderOwnerIdControl"
                     placeholder="usr_xxxx or tea_xxxx (auto-detected if blank)"
-                    class="w-full bg-neutral-950 border border-neutral-800 focus:border-emerald-500 rounded-lg px-3 py-2 text-white outline-none"
+                    class="w-full bg-neutral-950 border border-neutral-800 focus:border-emerald-500 rounded px-3 py-2 text-white outline-none"
                   />
                 </div>
                 <div>
@@ -293,7 +327,7 @@ import { ToastService } from '../../core/services/toast.service.js';
           </div>
 
           <!-- Cloudflare R2 Credentials & Test Connection (Section 18) -->
-          <div class="p-5 rounded-xl border border-neutral-800 bg-neutral-900/60 space-y-4">
+          <div class="p-5 rounded border border-neutral-800 bg-neutral-900/60 space-y-4">
             <div class="flex items-center justify-between">
               <div>
                 <h3 class="text-xs font-semibold uppercase tracking-wider text-neutral-400 font-mono flex items-center gap-2">
@@ -309,7 +343,7 @@ import { ToastService } from '../../core/services/toast.service.js';
                 type="button"
                 (click)="testR2()"
                 [disabled]="testingR2()"
-                class="px-3 py-1.5 rounded-lg border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-200 text-xs font-medium flex items-center gap-1.5 cursor-pointer"
+                class="px-3 py-1.5 rounded border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-200 text-xs font-medium flex items-center gap-1.5 cursor-pointer"
               >
                 <mat-icon class="text-sm" [class.animate-spin]="testingR2()">network_check</mat-icon>
                 <span>Test R2</span>
@@ -324,7 +358,7 @@ import { ToastService } from '../../core/services/toast.service.js';
                     type="text"
                     [formControl]="r2AccountIdControl"
                     placeholder="e.g. 5f8a9e...32chars"
-                    class="w-full bg-neutral-950 border border-neutral-800 focus:border-emerald-500 rounded-lg px-3 py-2 text-white outline-none"
+                    class="w-full bg-neutral-950 border border-neutral-800 focus:border-emerald-500 rounded px-3 py-2 text-white outline-none"
                   />
                 </div>
                 <div>
@@ -333,7 +367,7 @@ import { ToastService } from '../../core/services/toast.service.js';
                     type="text"
                     [formControl]="r2BucketControl"
                     placeholder="zetapanel-servers"
-                    class="w-full bg-neutral-950 border border-neutral-800 focus:border-emerald-500 rounded-lg px-3 py-2 text-white outline-none"
+                    class="w-full bg-neutral-950 border border-neutral-800 focus:border-emerald-500 rounded px-3 py-2 text-white outline-none"
                   />
                 </div>
               </div>
@@ -345,7 +379,7 @@ import { ToastService } from '../../core/services/toast.service.js';
                     type="text"
                     [formControl]="r2AccessKeyIdControl"
                     placeholder="Access Key ID"
-                    class="w-full bg-neutral-950 border border-neutral-800 focus:border-emerald-500 rounded-lg px-3 py-2 text-white outline-none"
+                    class="w-full bg-neutral-950 border border-neutral-800 focus:border-emerald-500 rounded px-3 py-2 text-white outline-none"
                   />
                 </div>
                 <div>
@@ -354,7 +388,7 @@ import { ToastService } from '../../core/services/toast.service.js';
                     type="password"
                     [formControl]="r2SecretAccessKeyControl"
                     placeholder="Secret Access Key"
-                    class="w-full bg-neutral-950 border border-neutral-800 focus:border-emerald-500 rounded-lg px-3 py-2 text-white outline-none"
+                    class="w-full bg-neutral-950 border border-neutral-800 focus:border-emerald-500 rounded px-3 py-2 text-white outline-none"
                   />
                 </div>
               </div>
@@ -362,7 +396,7 @@ import { ToastService } from '../../core/services/toast.service.js';
           </div>
 
           <!-- Render PostgreSQL Connection Test -->
-          <div class="p-5 rounded-xl border border-neutral-800 bg-neutral-900/60 space-y-4">
+          <div class="p-5 rounded border border-neutral-800 bg-neutral-900/60 space-y-4">
             <div class="flex items-center justify-between">
               <div>
                 <h3 class="text-xs font-semibold uppercase tracking-wider text-neutral-400 font-mono flex items-center gap-2">
@@ -378,7 +412,7 @@ import { ToastService } from '../../core/services/toast.service.js';
                 type="button"
                 (click)="testPostgres()"
                 [disabled]="testingPostgres()"
-                class="px-3 py-1.5 rounded-lg border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-200 text-xs font-medium flex items-center gap-1.5 cursor-pointer"
+                class="px-3 py-1.5 rounded border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-200 text-xs font-medium flex items-center gap-1.5 cursor-pointer"
               >
                 <mat-icon class="text-sm" [class.animate-spin]="testingPostgres()">sync</mat-icon>
                 <span>Test Database</span>
@@ -392,12 +426,12 @@ import { ToastService } from '../../core/services/toast.service.js';
                   type="password"
                   [formControl]="databaseUrlControl"
                   placeholder="postgresql://user:password@dpg-xxx.render.com/zetapanel"
-                  class="w-full bg-neutral-950 border border-neutral-800 focus:border-emerald-500 rounded-lg px-3 py-2 text-white outline-none"
+                  class="w-full bg-neutral-950 border border-neutral-800 focus:border-emerald-500 rounded px-3 py-2 text-white outline-none"
                 />
               </div>
 
               @if (postgresStatusMsg()) {
-                <div class="text-[11px] p-2.5 rounded-lg bg-neutral-950 border border-neutral-800 font-mono text-neutral-300">
+                <div class="text-[11px] p-2.5 rounded bg-neutral-950 border border-neutral-800 font-mono text-neutral-300">
                   {{ postgresStatusMsg() }}
                 </div>
               }
@@ -408,7 +442,7 @@ import { ToastService } from '../../core/services/toast.service.js';
             <button
               type="button"
               (click)="saveCredentials()"
-              class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold cursor-pointer shadow-sm flex items-center gap-1.5"
+              class="px-5 py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold cursor-pointer shadow-sm flex items-center gap-1.5"
             >
               <mat-icon class="text-sm">save</mat-icon>
               <span>Save Infrastructure Settings</span>
@@ -421,7 +455,7 @@ import { ToastService } from '../../core/services/toast.service.js';
       @if (activeTab() === 'settings') {
         <div class="max-w-3xl space-y-6">
           <form [formGroup]="systemForm" (ngSubmit)="saveSystemSettings()" class="space-y-5">
-            <div class="p-5 rounded-xl border border-neutral-800 bg-neutral-900/60 space-y-4">
+            <div class="p-5 rounded border border-neutral-800 bg-neutral-900/60 space-y-4">
               <h3 class="text-xs font-semibold uppercase tracking-wider text-neutral-400 font-mono">
                 System Quotas &amp; Registration
               </h3>
@@ -432,7 +466,7 @@ import { ToastService } from '../../core/services/toast.service.js';
                   <input
                     type="text"
                     formControlName="panelName"
-                    class="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-xs text-white outline-none"
+                    class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-xs text-white outline-none"
                   />
                 </div>
                 <div>
@@ -440,7 +474,7 @@ import { ToastService } from '../../core/services/toast.service.js';
                   <input
                     type="number"
                     formControlName="maxServersPerUser"
-                    class="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-xs text-white outline-none font-mono"
+                    class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-xs text-white outline-none font-mono"
                   />
                 </div>
               </div>
@@ -451,7 +485,7 @@ import { ToastService } from '../../core/services/toast.service.js';
                   <input
                     type="number"
                     formControlName="maxStorageMbPerUser"
-                    class="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-xs text-white outline-none font-mono"
+                    class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-xs text-white outline-none font-mono"
                   />
                 </div>
                 <div class="pt-6">
@@ -470,7 +504,7 @@ import { ToastService } from '../../core/services/toast.service.js';
             <div class="flex justify-end">
               <button
                 type="submit"
-                class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold cursor-pointer shadow-sm flex items-center gap-1.5"
+                class="px-5 py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold cursor-pointer shadow-sm flex items-center gap-1.5"
               >
                 <mat-icon class="text-sm">save</mat-icon>
                 <span>Save System Settings</span>
@@ -483,7 +517,7 @@ import { ToastService } from '../../core/services/toast.service.js';
       <!-- Create User Modal -->
       @if (showCreateUserModal()) {
         <div class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div class="bg-neutral-900 border border-neutral-800 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4 font-sans">
+          <div class="bg-neutral-900 border border-neutral-800 rounded w-full max-w-md p-6 shadow-2xl space-y-4 font-sans">
             <div class="flex items-center justify-between">
               <h3 class="text-sm font-bold text-white flex items-center gap-2">
                 <mat-icon class="text-emerald-400 text-base">person_add</mat-icon>
@@ -500,7 +534,7 @@ import { ToastService } from '../../core/services/toast.service.js';
                 <input
                   type="text"
                   formControlName="username"
-                  class="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-1.5 text-white font-mono outline-none"
+                  class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-1.5 text-white font-mono outline-none"
                 />
               </div>
 
@@ -509,7 +543,7 @@ import { ToastService } from '../../core/services/toast.service.js';
                 <input
                   type="email"
                   formControlName="email"
-                  class="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-1.5 text-white font-mono outline-none"
+                  class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-1.5 text-white font-mono outline-none"
                 />
               </div>
 
@@ -518,7 +552,7 @@ import { ToastService } from '../../core/services/toast.service.js';
                 <input
                   type="password"
                   formControlName="password"
-                  class="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-1.5 text-white font-mono outline-none"
+                  class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-1.5 text-white font-mono outline-none"
                 />
               </div>
 
@@ -527,7 +561,7 @@ import { ToastService } from '../../core/services/toast.service.js';
                   <label class="block font-medium text-neutral-300 mb-1">Role</label>
                   <select
                     formControlName="role"
-                    class="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-1.5 text-white font-mono outline-none"
+                    class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-1.5 text-white font-mono outline-none"
                   >
                     <option value="USER">USER</option>
                     <option value="ADMIN">ADMIN</option>
@@ -538,7 +572,7 @@ import { ToastService } from '../../core/services/toast.service.js';
                   <input
                     type="number"
                     formControlName="maxServers"
-                    class="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-1.5 text-white font-mono outline-none"
+                    class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-1.5 text-white font-mono outline-none"
                   />
                 </div>
               </div>
@@ -547,14 +581,14 @@ import { ToastService } from '../../core/services/toast.service.js';
                 <button
                   type="button"
                   (click)="showCreateUserModal.set(false)"
-                  class="px-3.5 py-1.5 rounded-lg border border-neutral-800 text-neutral-300 hover:bg-neutral-800 cursor-pointer"
+                  class="px-3.5 py-1.5 rounded border border-neutral-800 text-neutral-300 hover:bg-neutral-800 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   [disabled]="createUserForm.invalid"
-                  class="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-semibold cursor-pointer"
+                  class="px-4 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-semibold cursor-pointer"
                 >
                   Create
                 </button>
@@ -567,7 +601,7 @@ import { ToastService } from '../../core/services/toast.service.js';
       <!-- Upgrade User Package Modal -->
       @if (showUpgradeModal() && targetUpgradeUser()) {
         <div class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div class="bg-neutral-900 border border-neutral-800 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4 font-sans">
+          <div class="bg-neutral-900 border border-neutral-800 rounded w-full max-w-md p-6 shadow-2xl space-y-4 font-sans">
             <div class="flex items-center justify-between">
               <div>
                 <h3 class="text-sm font-bold text-white flex items-center gap-2">
@@ -591,7 +625,7 @@ import { ToastService } from '../../core/services/toast.service.js';
                   <button
                     type="button"
                     (click)="applyPlanPreset('Bot Starter', 1, 2048)"
-                    class="p-2 rounded-lg border text-left cursor-pointer transition-colors"
+                    class="p-2 rounded border text-left cursor-pointer transition-colors"
                     [class.border-emerald-500]="upgradeForm.get('plan')?.value === 'Bot Starter'"
                     [class.bg-emerald-950/40]="upgradeForm.get('plan')?.value === 'Bot Starter'"
                     [class.border-neutral-800]="upgradeForm.get('plan')?.value !== 'Bot Starter'"
@@ -604,7 +638,7 @@ import { ToastService } from '../../core/services/toast.service.js';
                   <button
                     type="button"
                     (click)="applyPlanPreset('Developer Worker', 3, 10240)"
-                    class="p-2 rounded-lg border text-left cursor-pointer transition-colors"
+                    class="p-2 rounded border text-left cursor-pointer transition-colors"
                     [class.border-emerald-500]="upgradeForm.get('plan')?.value === 'Developer Worker'"
                     [class.bg-emerald-950/40]="upgradeForm.get('plan')?.value === 'Developer Worker'"
                     [class.border-neutral-800]="upgradeForm.get('plan')?.value !== 'Developer Worker'"
@@ -617,7 +651,7 @@ import { ToastService } from '../../core/services/toast.service.js';
                   <button
                     type="button"
                     (click)="applyPlanPreset('Pro Power Cluster', 8, 40960)"
-                    class="p-2 rounded-lg border text-left cursor-pointer transition-colors"
+                    class="p-2 rounded border text-left cursor-pointer transition-colors"
                     [class.border-emerald-500]="upgradeForm.get('plan')?.value === 'Pro Power Cluster'"
                     [class.bg-emerald-950/40]="upgradeForm.get('plan')?.value === 'Pro Power Cluster'"
                     [class.border-neutral-800]="upgradeForm.get('plan')?.value !== 'Pro Power Cluster'"
@@ -630,7 +664,7 @@ import { ToastService } from '../../core/services/toast.service.js';
                   <button
                     type="button"
                     (click)="applyPlanPreset('Enterprise Dedicated', 25, 153600)"
-                    class="p-2 rounded-lg border text-left cursor-pointer transition-colors"
+                    class="p-2 rounded border text-left cursor-pointer transition-colors"
                     [class.border-emerald-500]="upgradeForm.get('plan')?.value === 'Enterprise Dedicated'"
                     [class.bg-emerald-950/40]="upgradeForm.get('plan')?.value === 'Enterprise Dedicated'"
                     [class.border-neutral-800]="upgradeForm.get('plan')?.value !== 'Enterprise Dedicated'"
@@ -648,7 +682,7 @@ import { ToastService } from '../../core/services/toast.service.js';
                   type="text"
                   formControlName="plan"
                   placeholder="e.g. Developer Worker"
-                  class="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-1.5 text-white font-mono outline-none"
+                  class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-1.5 text-white font-mono outline-none"
                 />
               </div>
 
@@ -658,7 +692,7 @@ import { ToastService } from '../../core/services/toast.service.js';
                   <input
                     type="number"
                     formControlName="maxServers"
-                    class="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-1.5 text-white font-mono outline-none"
+                    class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-1.5 text-white font-mono outline-none"
                   />
                 </div>
                 <div>
@@ -666,7 +700,7 @@ import { ToastService } from '../../core/services/toast.service.js';
                   <input
                     type="number"
                     formControlName="maxStorageMb"
-                    class="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-1.5 text-white font-mono outline-none"
+                    class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-1.5 text-white font-mono outline-none"
                   />
                 </div>
               </div>
@@ -675,14 +709,14 @@ import { ToastService } from '../../core/services/toast.service.js';
                 <button
                   type="button"
                   (click)="showUpgradeModal.set(false)"
-                  class="px-3.5 py-1.5 rounded-lg border border-neutral-800 text-neutral-300 hover:bg-neutral-800 cursor-pointer"
+                  class="px-3.5 py-1.5 rounded border border-neutral-800 text-neutral-300 hover:bg-neutral-800 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   [disabled]="upgradeForm.invalid || upgradingUser()"
-                  class="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-semibold cursor-pointer flex items-center gap-1.5 shadow-sm"
+                  class="px-4 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-semibold cursor-pointer flex items-center gap-1.5 shadow-sm"
                 >
                   @if (upgradingUser()) {
                     <mat-icon class="text-sm animate-spin">refresh</mat-icon>
@@ -697,6 +731,8 @@ import { ToastService } from '../../core/services/toast.service.js';
           </div>
         </div>
       }
+        </div>
+      </div>
     </div>
   `,
 })
