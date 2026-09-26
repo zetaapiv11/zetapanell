@@ -116,3 +116,31 @@ export interface AdminOverview {
     maintenanceMode: boolean;
   };
 }
+
+export interface MetricPoint {
+  timestamp: string;
+  value: number;
+}
+
+export interface MetricSeries {
+  labels?: Array<{ field: string; value: string }>;
+  values: MetricPoint[];
+  unit?: string;
+}
+
+export interface ResourceMetrics {
+  cpuPercent: number | null;
+  memoryBytes: number | null;
+  memoryUnit?: string;
+  diskUsedBytes: number | null;
+  diskCapacityBytes: number | null;
+  diskUnit?: string;
+  bandwidthBytesPerSec: number | null;
+  bandwidthUnit?: string;
+  series: {
+    cpu: MetricSeries[];
+    memory: MetricSeries[];
+    diskUsage: MetricSeries[];
+    bandwidth: MetricSeries[];
+  };
+}
