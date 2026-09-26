@@ -118,7 +118,7 @@ import { ToastService } from '../../../core/services/toast.service.js';
         tabindex="0"
         role="region"
         aria-label="Interactive Terminal Emulator"
-        class="w-full h-[460px] bg-[#09090b] p-2 select-text outline-none focus:ring-1 focus:ring-emerald-500/50"
+        class="w-full h-[460px] bg-[#131a20] p-2 select-text outline-none focus:ring-1 focus:ring-cyan-500/50"
         (click)="focusTerminal()"
         (keydown)="focusTerminal()"
       ></div>
@@ -245,25 +245,26 @@ export class ServerTerminal implements AfterViewInit, OnDestroy {
         lineHeight: 1.25,
         convertEol: true,
         theme: {
-          background: '#09090b',
+          // Matches Pterodactyl's actual Console.tsx xterm theme exactly.
+          background: '#131a20',
           foreground: '#f4f4f5',
-          cursor: '#10b981',
-          selectionBackground: '#065f46',
-          black: '#18181b',
-          red: '#f43f5e',
-          green: '#10b981',
-          yellow: '#f59e0b',
-          blue: '#3b82f6',
-          magenta: '#d946ef',
-          cyan: '#06b6d4',
-          white: '#fafafa',
-          brightBlack: '#71717a',
-          brightRed: '#fb7185',
-          brightGreen: '#34d399',
-          brightYellow: '#fbbf24',
-          brightBlue: '#60a5fa',
-          brightMagenta: '#e879f9',
-          brightCyan: '#22d3ee',
+          cursor: '#2DDAFD',
+          selectionBackground: '#FAF089',
+          black: '#131a20',
+          red: '#E54B4B',
+          green: '#9ECE58',
+          yellow: '#FAED70',
+          blue: '#396FE2',
+          magenta: '#BB80B3',
+          cyan: '#2DDAFD',
+          white: '#d0d0d0',
+          brightBlack: 'rgba(255, 255, 255, 0.2)',
+          brightRed: '#FF5370',
+          brightGreen: '#C3E88D',
+          brightYellow: '#FFCB6B',
+          brightBlue: '#82AAFF',
+          brightMagenta: '#C792EA',
+          brightCyan: '#89DDFF',
           brightWhite: '#ffffff',
         },
       });
@@ -321,7 +322,9 @@ export class ServerTerminal implements AfterViewInit, OnDestroy {
   private prompt() {
     if (!this.terminal) return;
     const name = (this.serverName() || 'app').toLowerCase();
-    this.terminal.write(`\x1b[1;32mbot@zetapanel\x1b[0m:\x1b[1;34m~/${name}\x1b[0m$ `);
+    // Bold yellow prompt -- matches Pterodactyl's TERMINAL_PRELUDE style
+    // ('\x1b[1;33m container@pterodactyl~ ') instead of the green one.
+    this.terminal.write(`\x1b[1;33mbot@zetapanel\x1b[0m:\x1b[1;34m~/${name}\x1b[0m$ `);
   }
 
   private setupKeyHandlers() {
