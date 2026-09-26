@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component, inject, input, output, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
-import { Router } from '@angular/router';
 import { FileService } from '../../../core/services/file.service.js';
 import { ToastService } from '../../../core/services/toast.service.js';
+import { DeployProgress, DeployStep } from './deploy-progress.js';
 
 export interface StagedFile {
   file: File;
@@ -17,8 +17,15 @@ export interface StagedFile {
 @Component({
   selector: 'app-file-upload',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, MatIconModule],
+  imports: [ReactiveFormsModule, MatIconModule, DeployProgress],
   template: `
+    <app-deploy-progress
+      [visible]="showDeployModal()"
+      [title]="deployModalTitle()"
+      [steps]="deploySteps()"
+      (closed)="showDeployModal.set(false)"
+    ></app-deploy-progress>
+
     <div class="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 space-y-4 font-sans">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
@@ -173,11 +180,14 @@ export class FileUpload {
 
   private fileService = inject(FileService);
   private toast = inject(ToastService);
-  private router = inject(Router);
 
   isDragging = signal<boolean>(false);
   uploading = signal<boolean>(false);
   stagedFiles = signal<StagedFile[]>([]);
+
+  showDeployModal = signal<boolean>(false);
+  deployModalTitle = signal<string>('');
+  deploySteps = signal<DeployStep[]>([]);
 
   autoExtractControl = new FormControl(true);
   autoRerunControl = new FormControl(true);
@@ -242,6 +252,20 @@ export class FileUpload {
     const shouldExtract = this.autoExtractControl.value ?? true;
     const shouldRerun = this.autoRerunControl.value ?? true;
 
+    // Set up the step tracker up front so it's visible for the whole flow,
+    // not just the GitHub/Render part.
+    this.deployModalTitle.set(`${items.length} file(s) to ${dir ? '/' + dir : '/'}`);
+    this.deploySteps.set([
+      { key: 'upload', label: 'Uploading to Cloudflare R2', icon: 'cloud_upload', state: 'active' },
+      ...(shouldRerun
+        ? ([
+            { key: 'github', label: 'Pushing to GitHub', icon: 'merge', state: 'pending' },
+            { key: 'render', label: 'Triggering Render deploy', icon: 'rocket_launch', state: 'pending' },
+          ] as DeployStep[])
+        : []),
+    ]);
+    this.showDeployModal.set(true);
+
     try {
       for (const item of items) {
         item.status = 'uploading';
@@ -263,21 +287,43 @@ export class FileUpload {
         this.stagedFiles.set([...items]);
       }
 
-      this.toast.success(`Successfully uploaded ${items.length} file(s) to Cloudflare R2!`);
+      this.updateStep('upload', 'done', `${items.length} file(s) uploaded`);
       this.uploadFinished.emit();
 
       if (shouldRerun) {
-        this.toast.info('Triggering server sync and re-run on Render...');
-        await this.fileService.syncDeploy(serverId);
-        this.router.navigate(['/servers', serverId, 'console']);
+        this.updateStep('github', 'active');
+        try {
+          const result = await this.fileService.syncDeploy(serverId);
+          this.updateStep('github', 'done', result?.filesCount !== undefined ? `${result.filesCount} file(s) pushed` : undefined);
+          this.updateStep('render', 'done', result?.deploy?.id ? `Deploy ${result.deploy.id.slice(-8)} started` : 'Deploy started');
+          this.toast.success('Files pushed to GitHub. Render deploy started.');
+          this.clearFiles();
+        } catch (err: any) {
+          const step = err?.error?.step;
+          const serverMsg = err?.error?.error || err?.message || 'Sync/deploy failed.';
+          if (step === 'github_push') {
+            this.updateStep('github', 'error', serverMsg);
+            this.updateStep('render', 'pending', 'Skipped — GitHub push failed');
+          } else {
+            this.updateStep('github', 'error', serverMsg);
+          }
+          this.toast.error(serverMsg);
+        }
       } else {
         this.clearFiles();
       }
     } catch (err: any) {
+      this.updateStep('upload', 'error', err?.message || 'Upload to R2 failed.');
       this.toast.error(err.message || 'Upload to R2 failed.');
     } finally {
       this.uploading.set(false);
     }
+  }
+
+  private updateStep(key: string, state: DeployStep['state'], detail?: string) {
+    this.deploySteps.update((steps) =>
+      steps.map((s) => (s.key === key ? { ...s, state, detail: detail ?? s.detail } : s))
+    );
   }
 
   private readFileAsBase64(file: File): Promise<string> {
