@@ -130,6 +130,15 @@ import { StatusBadge } from '../../../shared/components/status-badge.js';
           </a>
 
           <a
+            [routerLink]="['/servers', server()!.id, 'monitor']"
+            routerLinkActive="text-emerald-400 border-emerald-400 bg-neutral-900/40"
+            class="px-3.5 py-2.5 border-b-2 border-transparent text-neutral-400 hover:text-neutral-200 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+          >
+            <mat-icon class="text-sm">monitor_heart</mat-icon>
+            <span>Monitor</span>
+          </a>
+
+          <a
             [routerLink]="['/servers', server()!.id, 'startup']"
             routerLinkActive="text-emerald-400 border-emerald-400 bg-neutral-900/40"
             class="px-3.5 py-2.5 border-b-2 border-transparent text-neutral-400 hover:text-neutral-200 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
