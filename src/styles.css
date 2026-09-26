@@ -1,5 +1,59 @@
 /* You can add global styles to this file, and also import other style files */
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
 @import "@xterm/xterm/css/xterm.css";
 @import "tailwindcss";
+
+/*
+ * Pterodactyl-match theme.
+ *
+ * ZetaPanel's components use Tailwind's default "neutral" and "emerald"
+ * color scales everywhere (bg-neutral-900, text-emerald-400, etc). Rather
+ * than hand-editing every component, we redefine what those two scales
+ * actually render as, here, once. Every existing neutral-*/emerald-* class
+ * in the app picks up the new colors automatically:
+ *   - "neutral"  -> Pterodactyl's real blue-gray scale (HSL, from their
+ *                   tailwind.config.js "gray"/"neutral" token)
+ *   - "emerald"  -> remapped to Tailwind's stock "blue" scale, matching
+ *                   Pterodactyl's primary accent color (colors.blue)
+ * "emerald-*" class names in the source stay as-is; only what they paint
+ * on screen changes. A future cleanup could rename them to blue-* for
+ * clarity, but that's a much larger, riskier find-and-replace across the
+ * whole app -- this gets the same visual result safely in one file.
+ */
+@theme {
+  --color-neutral-50: hsl(216, 33%, 97%);
+  --color-neutral-100: hsl(214, 15%, 91%);
+  --color-neutral-200: hsl(210, 16%, 82%);
+  --color-neutral-300: hsl(211, 13%, 65%);
+  --color-neutral-400: hsl(211, 10%, 53%);
+  --color-neutral-500: hsl(211, 12%, 43%);
+  --color-neutral-600: hsl(209, 14%, 37%);
+  --color-neutral-700: hsl(209, 18%, 30%);
+  --color-neutral-800: hsl(209, 20%, 25%);
+  --color-neutral-900: hsl(210, 24%, 16%);
+  /* Pterodactyl's scale stops at 900; 950 is our own extrapolation, darker
+     still, for the near-black surfaces (page background, terminal chrome)
+     ZetaPanel relies on that Pterodactyl's design doesn't need. */
+  --color-neutral-950: hsl(210, 28%, 10%);
+
+  --color-emerald-50: var(--color-blue-50);
+  --color-emerald-100: var(--color-blue-100);
+  --color-emerald-200: var(--color-blue-200);
+  --color-emerald-300: var(--color-blue-300);
+  --color-emerald-400: var(--color-blue-400);
+  --color-emerald-500: var(--color-blue-500);
+  --color-emerald-600: var(--color-blue-600);
+  --color-emerald-700: var(--color-blue-700);
+  --color-emerald-800: var(--color-blue-800);
+  --color-emerald-900: var(--color-blue-900);
+  --color-emerald-950: var(--color-blue-950);
+
+  --font-sans: 'IBM Plex Sans', 'Roboto', system-ui, sans-serif;
+}
+
+body {
+  font-family: 'IBM Plex Sans', 'Roboto', system-ui, sans-serif;
+  letter-spacing: 0.015em;
+}
 
