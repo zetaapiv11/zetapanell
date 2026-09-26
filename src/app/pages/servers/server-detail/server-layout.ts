@@ -6,186 +6,97 @@ import { ServerService } from '../../../core/services/server.service.js';
 import { ToastService } from '../../../core/services/toast.service.js';
 import { StatusBadge } from '../../../shared/components/status-badge.js';
 
+interface NavItem {
+  path: string;
+  label: string;
+  icon: string;
+}
+
 @Component({
   selector: 'app-server-layout',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterOutlet, RouterLink, RouterLinkActive, MatIconModule, StatusBadge],
   template: `
     @if (loading() && !server()) {
-      <div class="p-16 text-center text-neutral-500 text-xs">
+      <div class="p-16 text-center text-neutral-400 text-xs">
         <mat-icon class="text-2xl animate-spin mb-2">refresh</mat-icon>
-        <div>Connecting to Render API...</div>
+        <div>Menghubungkan ke Render...</div>
       </div>
     } @else if (server()) {
-      <div class="space-y-5">
-        <!-- Server Header (Pterodactyl-inspired) -->
-        <div class="p-5 rounded-xl border border-neutral-800 bg-neutral-900/70 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div class="flex items-start gap-4">
-            <div class="w-12 h-12 rounded-xl bg-neutral-950 border border-neutral-800 flex items-center justify-center font-mono font-bold text-lg text-emerald-400 shrink-0">
-              {{ server()!.name.charAt(0).toUpperCase() }}
+      <div class="space-y-0">
+        <!-- Server Header: name/description left, Power Buttons right
+             (mirrors Pterodactyl's ServerConsoleContainer header row) -->
+        <div class="px-1 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2.5 flex-wrap">
+              <h1 class="text-xl font-medium tracking-normal text-neutral-50 truncate">{{ server()!.name }}</h1>
+              <app-status-badge [status]="server()!.status"></app-status-badge>
             </div>
-            <div>
-              <div class="flex items-center gap-3">
-                <h1 class="text-lg font-bold tracking-tight text-white">{{ server()!.name }}</h1>
-                <app-status-badge [status]="server()!.status"></app-status-badge>
-              </div>
-
-              <!-- Unboxed metadata with subtle dots -->
-              <div class="flex flex-wrap items-center gap-2 text-xs text-neutral-400 font-mono mt-1">
-                <span>{{ server()!.runtime }}</span>
-                <span aria-hidden="true" class="text-neutral-600">&middot;</span>
-                <span>{{ server()!.serviceType }}</span>
-                <span aria-hidden="true" class="text-neutral-600">&middot;</span>
-                <span>{{ server()!.region }}</span>
-                <span aria-hidden="true" class="text-neutral-600">&middot;</span>
-                <span class="text-neutral-500">{{ server()!.renderServiceId }}</span>
-                @if (server()!.serviceUrl) {
-                  <span aria-hidden="true" class="text-neutral-600">&middot;</span>
-                  <a
-                    [href]="server()!.serviceUrl"
-                    target="_blank"
-                    rel="noopener"
-                    class="text-emerald-400 hover:underline flex items-center gap-0.5"
-                  >
-                    <span>Visit</span>
-                    <mat-icon class="text-[10px]">open_in_new</mat-icon>
-                  </a>
-                }
-              </div>
-            </div>
+            <p class="text-sm text-neutral-300 truncate mt-0.5">
+              {{ server()!.runtime }} &middot; {{ server()!.region }}
+              @if (server()!.serviceUrl) {
+                &middot;
+                <a [href]="server()!.serviceUrl" target="_blank" rel="noopener" class="text-blue-400 hover:underline">
+                  Buka URL
+                </a>
+              }
+            </p>
           </div>
 
-          <!-- Quick Actions Bar -->
-          <div class="flex items-center gap-2">
+          <!-- Power Controls: Start (primary/blue) / Restart (text/gray) / Stop (danger/red) --
+               same three-button grouping and coloring as Pterodactyl's PowerButtons.tsx -->
+          <div class="flex items-center gap-2 shrink-0">
             <button
               type="button"
-              (click)="triggerDeploy()"
-              [disabled]="actionLoading()"
-              class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+              (click)="handleStart()"
+              [disabled]="actionLoading() || (server()!.status !== 'SUSPENDED' && isBusyStatus())"
+              class="px-4 py-2 rounded text-sm font-semibold transition-all duration-100 cursor-pointer
+                     bg-blue-600 text-blue-50 hover:bg-blue-500 disabled:bg-blue-500/75 disabled:text-blue-200/75 disabled:cursor-not-allowed"
             >
-              <mat-icon class="text-sm">rocket_launch</mat-icon>
-              <span>Deploy</span>
+              Start
             </button>
 
             <button
               type="button"
-              (click)="triggerRestart()"
-              [disabled]="actionLoading()"
-              class="px-3 py-1.5 rounded-lg border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 disabled:opacity-50 text-neutral-200 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+              (click)="handleRestart()"
+              [disabled]="actionLoading() || server()!.status === 'SUSPENDED'"
+              class="px-4 py-2 rounded text-sm font-semibold transition-all duration-100 cursor-pointer
+                     bg-neutral-500 text-neutral-50 hover:bg-neutral-400 disabled:bg-neutral-500/75 disabled:text-neutral-200/75 disabled:cursor-not-allowed"
             >
-              <mat-icon class="text-sm">restart_alt</mat-icon>
-              <span>Restart</span>
+              Restart
             </button>
 
-            @if (server()!.status === 'SUSPENDED') {
-              <button
-                type="button"
-                (click)="toggleSuspend(false)"
-                [disabled]="actionLoading()"
-                class="px-3 py-1.5 rounded-lg border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 disabled:opacity-50 text-emerald-400 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <mat-icon class="text-sm">play_arrow</mat-icon>
-                <span>Resume</span>
-              </button>
-            } @else {
-              <button
-                type="button"
-                (click)="toggleSuspend(true)"
-                [disabled]="actionLoading()"
-                class="px-3 py-1.5 rounded-lg border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 disabled:opacity-50 text-neutral-400 hover:text-amber-400 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <mat-icon class="text-sm">pause</mat-icon>
-                <span>Suspend</span>
-              </button>
-            }
-
-            <a
-              [routerLink]="['/servers', server()!.id, 'settings']"
-              class="p-1.5 rounded-lg border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-white transition-colors cursor-pointer"
-              title="Server Settings"
+            <button
+              type="button"
+              (click)="handleStop()"
+              [disabled]="actionLoading() || server()!.status === 'SUSPENDED'"
+              class="px-4 py-2 rounded text-sm font-semibold transition-all duration-100 cursor-pointer
+                     bg-red-600 text-neutral-50 hover:bg-red-500 disabled:bg-red-600/75 disabled:text-red-50/75 disabled:cursor-not-allowed"
             >
-              <mat-icon class="text-sm">settings</mat-icon>
-            </a>
+              Stop
+            </button>
           </div>
         </div>
 
-        <!-- Sub-Navigation Tabs (Pterodactyl-Style) -->
-        <div class="flex items-center gap-1 border-b border-neutral-800 text-xs font-medium overflow-x-auto">
-          <a
-            [routerLink]="['/servers', server()!.id, 'console']"
-            routerLinkActive="text-emerald-400 border-emerald-400 bg-neutral-900/40"
-            class="px-3.5 py-2.5 border-b-2 border-transparent text-neutral-400 hover:text-neutral-200 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
-          >
-            <mat-icon class="text-sm">terminal</mat-icon>
-            <span>Console</span>
-          </a>
-
-          <a
-            [routerLink]="['/servers', server()!.id, 'files']"
-            routerLinkActive="text-emerald-400 border-emerald-400 bg-neutral-900/40"
-            class="px-3.5 py-2.5 border-b-2 border-transparent text-neutral-400 hover:text-neutral-200 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
-          >
-            <mat-icon class="text-sm">folder</mat-icon>
-            <span>Files (R2)</span>
-          </a>
-
-          <a
-            [routerLink]="['/servers', server()!.id, 'monitor']"
-            routerLinkActive="text-emerald-400 border-emerald-400 bg-neutral-900/40"
-            class="px-3.5 py-2.5 border-b-2 border-transparent text-neutral-400 hover:text-neutral-200 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
-          >
-            <mat-icon class="text-sm">monitor_heart</mat-icon>
-            <span>Monitor</span>
-          </a>
-
-          <a
-            [routerLink]="['/servers', server()!.id, 'startup']"
-            routerLinkActive="text-emerald-400 border-emerald-400 bg-neutral-900/40"
-            class="px-3.5 py-2.5 border-b-2 border-transparent text-neutral-400 hover:text-neutral-200 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
-          >
-            <mat-icon class="text-sm">play_circle</mat-icon>
-            <span>Startup</span>
-          </a>
-
-          <a
-            [routerLink]="['/servers', server()!.id, 'env']"
-            routerLinkActive="text-emerald-400 border-emerald-400 bg-neutral-900/40"
-            class="px-3.5 py-2.5 border-b-2 border-transparent text-neutral-400 hover:text-neutral-200 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
-          >
-            <mat-icon class="text-sm">vpn_key</mat-icon>
-            <span>Environment</span>
-          </a>
-
-          <a
-            [routerLink]="['/servers', server()!.id, 'deployments']"
-            routerLinkActive="text-emerald-400 border-emerald-400 bg-neutral-900/40"
-            class="px-3.5 py-2.5 border-b-2 border-transparent text-neutral-400 hover:text-neutral-200 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
-          >
-            <mat-icon class="text-sm">cloud_sync</mat-icon>
-            <span>Deployments</span>
-          </a>
-
-          <a
-            [routerLink]="['/servers', server()!.id, 'activity']"
-            routerLinkActive="text-emerald-400 border-emerald-400 bg-neutral-900/40"
-            class="px-3.5 py-2.5 border-b-2 border-transparent text-neutral-400 hover:text-neutral-200 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
-          >
-            <mat-icon class="text-sm">history</mat-icon>
-            <span>Activity</span>
-          </a>
-
-          <a
-            [routerLink]="['/servers', server()!.id, 'settings']"
-            routerLinkActive="text-emerald-400 border-emerald-400 bg-neutral-900/40"
-            class="px-3.5 py-2.5 border-b-2 border-transparent text-neutral-400 hover:text-neutral-200 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
-          >
-            <mat-icon class="text-sm">settings</mat-icon>
-            <span>Settings</span>
-          </a>
+        <!-- Sub-Navigation: horizontal bar, cyan underline on the active tab
+             (matches Pterodactyl's SubNavigation.tsx exactly, not a sidebar) -->
+        <div class="w-full bg-neutral-700 shadow overflow-x-auto -mx-1 px-1">
+          <div class="flex items-center text-sm">
+            @for (item of navItems; track item.path) {
+              <a
+                [routerLink]="['/servers', server()!.id, item.path]"
+                routerLinkActive="text-neutral-100 shadow-[inset_0_-2px_0_var(--color-cyan-500)]"
+                class="inline-flex items-center gap-1.5 py-3 px-4 text-neutral-300 no-underline whitespace-nowrap transition-all duration-150 hover:text-neutral-100 cursor-pointer"
+              >
+                <mat-icon class="text-base">{{ item.icon }}</mat-icon>
+                <span>{{ item.label }}</span>
+              </a>
+            }
+          </div>
         </div>
 
         <!-- Tab Content Outlet -->
-        <div>
+        <div class="pt-4">
           <router-outlet></router-outlet>
         </div>
       </div>
@@ -202,6 +113,20 @@ export class ServerLayout implements OnInit, OnDestroy {
   loading = signal<boolean>(true);
   actionLoading = signal<boolean>(false);
 
+  // Beginner-friendly labels: plain wording over Render/dev jargon where
+  // possible ("Log Deploy" instead of "Deployments", etc.) so someone new to
+  // bot hosting doesn't need to guess what each tab does.
+  readonly navItems: NavItem[] = [
+    { path: 'console', label: 'Console', icon: 'terminal' },
+    { path: 'files', label: 'File Manager', icon: 'folder' },
+    { path: 'monitor', label: 'Monitor', icon: 'monitor_heart' },
+    { path: 'startup', label: 'Startup', icon: 'play_circle' },
+    { path: 'env', label: 'Environment', icon: 'vpn_key' },
+    { path: 'deployments', label: 'Log Deploy', icon: 'cloud_sync' },
+    { path: 'activity', label: 'Aktivitas', icon: 'history' },
+    { path: 'settings', label: 'Pengaturan', icon: 'settings' },
+  ];
+
   private pollInterval?: any;
 
   ngOnInit() {
@@ -216,9 +141,12 @@ export class ServerLayout implements OnInit, OnDestroy {
     this.pollInterval = setInterval(() => {
       const current = this.server();
       if (current) {
-        this.serverService.getStatus(current.id).then((statusRes) => {
-          this.server.update((s) => (s ? { ...s, status: statusRes.status as any } : null));
-        }).catch(() => {});
+        this.serverService
+          .getStatus(current.id)
+          .then((statusRes) => {
+            this.server.update((s) => (s ? { ...s, status: statusRes.status as any } : null));
+          })
+          .catch(() => {});
       }
     }, 15000);
   }
@@ -229,66 +157,80 @@ export class ServerLayout implements OnInit, OnDestroy {
     }
   }
 
+  isBusyStatus(): boolean {
+    const s = this.server();
+    return s?.status === 'DEPLOYING' || s?.status === 'BUILDING' || s?.status === 'CREATING';
+  }
+
   async loadServer(id: string) {
     this.loading.set(true);
     try {
       const data = await this.serverService.getServer(id);
       this.server.set(data);
     } catch (err: any) {
-      this.toast.error(err.message || 'Could not load server.');
+      this.toast.error(err.message || 'Tidak bisa memuat data server.');
       this.router.navigate(['/servers']);
     } finally {
       this.loading.set(false);
     }
   }
 
-  async triggerDeploy() {
+  /** "Start" = resume if suspended, otherwise trigger a fresh deploy. */
+  async handleStart() {
     const s = this.server();
     if (!s) return;
+    if (s.status === 'SUSPENDED') {
+      await this.toggleSuspend(false);
+      return;
+    }
     this.actionLoading.set(true);
     try {
-      this.toast.info(`Deploying ${s.name} on Render...`);
+      this.toast.info(`Menyalakan ${s.name}...`);
       await this.serverService.deploy(s.id, false);
-      this.toast.success('Render deployment triggered!');
+      this.toast.success('Bot sedang di-deploy!');
       this.server.update((srv) => (srv ? { ...srv, status: 'DEPLOYING' } : null));
     } catch (err: any) {
-      this.toast.error(err.message || 'Deploy trigger failed.');
+      this.toast.error(err.message || 'Gagal menyalakan bot.');
     } finally {
       this.actionLoading.set(false);
     }
   }
 
-  async triggerRestart() {
+  async handleRestart() {
     const s = this.server();
     if (!s) return;
     this.actionLoading.set(true);
     try {
-      this.toast.info(`Restarting ${s.name}...`);
+      this.toast.info(`Me-restart ${s.name}...`);
       await this.serverService.restart(s.id);
-      this.toast.success('Restart command sent to Render.');
+      this.toast.success('Perintah restart terkirim ke Render.');
     } catch (err: any) {
-      this.toast.error(err.message || 'Restart failed.');
+      this.toast.error(err.message || 'Restart gagal.');
     } finally {
       this.actionLoading.set(false);
     }
   }
 
-  async toggleSuspend(suspend: boolean) {
+  async handleStop() {
+    await this.toggleSuspend(true);
+  }
+
+  private async toggleSuspend(suspend: boolean) {
     const s = this.server();
     if (!s) return;
     this.actionLoading.set(true);
     try {
       if (suspend) {
         await this.serverService.suspend(s.id);
-        this.toast.success('Server suspended.');
+        this.toast.success('Bot dihentikan sementara (data tetap aman).');
         this.server.update((srv) => (srv ? { ...srv, status: 'SUSPENDED' } : null));
       } else {
         await this.serverService.resume(s.id);
-        this.toast.success('Server resumed.');
+        this.toast.success('Bot dinyalakan kembali.');
         this.server.update((srv) => (srv ? { ...srv, status: 'ONLINE' } : null));
       }
     } catch (err: any) {
-      this.toast.error(err.message || 'Suspend/Resume failed.');
+      this.toast.error(err.message || 'Start/Stop gagal.');
     } finally {
       this.actionLoading.set(false);
     }
