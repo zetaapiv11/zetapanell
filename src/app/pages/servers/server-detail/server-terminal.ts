@@ -20,129 +20,30 @@ import { ToastService } from '../../../core/services/toast.service.js';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [MatIconModule],
   template: `
-    <div class="rounded-xl border border-neutral-800 bg-neutral-950 overflow-hidden shadow-2xl flex flex-col font-sans">
-      <!-- Terminal Header / Titlebar -->
-      <div class="flex items-center justify-between bg-neutral-900 border-b border-neutral-800 px-4 py-2.5">
-        <div class="flex items-center gap-2">
-          <!-- Window Controls Dots -->
-          <div class="flex items-center gap-1.5 mr-2">
-            <span class="w-3 h-3 rounded-full bg-rose-500/80 inline-block"></span>
-            <span class="w-3 h-3 rounded-full bg-amber-500/80 inline-block"></span>
-            <span class="w-3 h-3 rounded-full bg-emerald-500/80 inline-block"></span>
-          </div>
-
-          <div class="flex items-center gap-2 text-xs font-mono text-neutral-300">
-            <mat-icon class="text-sm text-emerald-400">terminal</mat-icon>
-            <span class="font-bold text-white">xterm.js</span>
-            <span class="text-neutral-500 font-normal">|</span>
-            <span class="text-neutral-400">{{ serverName() || 'service' }}&#64;render</span>
-          </div>
-
-          <span
-            class="px-2 py-0.5 rounded text-[10px] font-mono border"
-            [class.bg-emerald-950]="connected()"
-            [class.border-emerald-800]="connected()"
-            [class.text-emerald-400]="connected()"
-            [class.bg-neutral-800]="!connected()"
-            [class.border-neutral-700]="!connected()"
-            [class.text-neutral-400]="!connected()"
-          >
-            {{ connected() ? 'ONLINE' : 'CONNECTING' }}
-          </span>
-        </div>
-
-        <!-- Terminal Header Actions -->
-        <div class="flex items-center gap-1.5">
-          <button
-            type="button"
-            (click)="runPresetCommand('help')"
-            class="px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-[11px] font-mono transition-colors cursor-pointer"
-            title="Show Help"
-          >
-            help
-          </button>
-
-          <button
-            type="button"
-            (click)="runPresetCommand('status')"
-            class="px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-[11px] font-mono transition-colors cursor-pointer"
-            title="Check Render Service Status"
-          >
-            status
-          </button>
-
-          <button
-            type="button"
-            (click)="runPresetCommand('ls -la')"
-            class="px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-[11px] font-mono transition-colors cursor-pointer"
-            title="List Storage Files"
-          >
-            ls
-          </button>
-
-          <button
-            type="button"
-            (click)="runPresetCommand('restart')"
-            class="px-2 py-1 rounded bg-emerald-950 hover:bg-emerald-900 border border-emerald-800 text-emerald-300 text-[11px] font-mono transition-colors cursor-pointer flex items-center gap-1"
-            title="Re-run container on Render"
-          >
-            <mat-icon class="text-xs">bolt</mat-icon>
-            <span>restart</span>
-          </button>
-
-          <div class="h-3 w-px bg-neutral-700 mx-1"></div>
-
-          <button
-            type="button"
-            (click)="clearTerminal()"
-            class="p-1.5 rounded hover:bg-neutral-800 text-neutral-400 hover:text-white transition-colors cursor-pointer"
-            title="Clear Terminal View (Ctrl+L)"
-          >
-            <mat-icon class="text-sm">delete_outline</mat-icon>
-          </button>
-
-          <button
-            type="button"
-            (click)="fitTerminal()"
-            class="p-1.5 rounded hover:bg-neutral-800 text-neutral-400 hover:text-white transition-colors cursor-pointer"
-            title="Fit Terminal"
-          >
-            <mat-icon class="text-sm">aspect_ratio</mat-icon>
-          </button>
-        </div>
+    <div class="relative">
+      <!-- Xterm.js Container -- output only, matches Pterodactyl's Console.tsx
+           (disableStdin: true; typing happens in the separate input below) -->
+      <div class="rounded-t bg-[#131a20] overflow-hidden">
+        <div #terminalElement class="w-full h-[420px] p-2"></div>
       </div>
 
-      <!-- Xterm.js Container -->
-      <div
-        #terminalElement
-        tabindex="0"
-        role="region"
-        aria-label="Interactive Terminal Emulator"
-        class="w-full h-[460px] bg-[#131a20] p-2 select-text outline-none focus:ring-1 focus:ring-cyan-500/50"
-        (click)="focusTerminal()"
-        (keydown)="focusTerminal()"
-      ></div>
-
-      <!-- Quick Command Bar -->
-      <div class="bg-neutral-900/80 border-t border-neutral-800 px-4 py-2 flex items-center justify-between text-xs text-neutral-400 flex-wrap gap-2">
-        <div class="flex items-center gap-2 flex-wrap">
-          <span class="text-[11px] text-neutral-500 font-mono">Quick Run:</span>
-          @for (cmd of commonCommands; track cmd) {
-            <button
-              type="button"
-              (click)="runPresetCommand(cmd)"
-              class="px-2 py-0.5 rounded bg-neutral-950 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 font-mono text-[11px] cursor-pointer transition-colors"
-            >
-              {{ cmd }}
-            </button>
-          }
-        </div>
-
-        <div class="text-[11px] text-neutral-500 font-mono hidden md:flex items-center gap-3">
-          <span>&uarr;&darr; History</span>
-          <span>Tab Complete</span>
-          <span>Ctrl+C Interrupt</span>
-          <span>Ctrl+L Clear</span>
+      <!-- Command Input Bar -- separate input below the terminal, exactly like
+           Pterodactyl's <input placeholder="Type a command..."> + chevron icon,
+           instead of typing directly into the terminal. -->
+      <div class="relative">
+        <input
+          #commandInput
+          type="text"
+          [disabled]="isBusy()"
+          (keydown)="handleCommandKeyDown($event)"
+          placeholder="Type a command..."
+          autocorrect="off"
+          autocapitalize="none"
+          aria-label="Console command input."
+          class="peer w-full bg-neutral-900 text-sm text-neutral-100 placeholder-neutral-500 rounded-b px-4 py-3 pr-10 outline-none border-t border-neutral-700 disabled:opacity-50"
+        />
+        <div class="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 peer-focus:text-neutral-100 peer-focus:animate-pulse pointer-events-none">
+          <mat-icon class="text-base">keyboard_double_arrow_right</mat-icon>
         </div>
       </div>
     </div>
@@ -158,6 +59,7 @@ export class ServerTerminal implements AfterViewInit, OnDestroy {
   serverName = input<string>('app');
 
   terminalElement = viewChild<ElementRef<HTMLDivElement>>('terminalElement');
+  commandInput = viewChild<ElementRef<HTMLInputElement>>('commandInput');
 
   private platformId = inject(PLATFORM_ID);
   private serverService = inject(ServerService);
@@ -166,52 +68,12 @@ export class ServerTerminal implements AfterViewInit, OnDestroy {
   connected = signal<boolean>(false);
   isBusy = signal<boolean>(false);
 
-  readonly commonCommands = [
-    'help',
-    'status',
-    'ls',
-    'cat package.json',
-    'env',
-    'ps',
-    'free -m',
-    'logs',
-    'restart',
-  ];
-
   private terminal: any = null;
   private fitAddon: any = null;
   private resizeObserver: ResizeObserver | null = null;
 
-  // Command Line State
-  private inputBuffer = '';
   private history: string[] = [];
   private historyIndex = -1;
-
-  private availableCompletions = [
-    'help',
-    'status',
-    'ls',
-    'dir',
-    'cat',
-    'env',
-    'printenv',
-    'restart',
-    'rerun',
-    'start',
-    'stop',
-    'logs',
-    'node -v',
-    'python --version',
-    'npm start',
-    'npm test',
-    'ps',
-    'top',
-    'free -m',
-    'uname -a',
-    'whoami',
-    'pwd',
-    'clear',
-  ];
 
   ngAfterViewInit() {
     if (isPlatformBrowser(this.platformId)) {
@@ -233,23 +95,20 @@ export class ServerTerminal implements AfterViewInit, OnDestroy {
     if (!el) return;
 
     try {
-      // Dynamic import of xterm and fit addon
       const { Terminal } = await import('@xterm/xterm');
       const { FitAddon } = await import('@xterm/addon-fit');
 
       this.terminal = new Terminal({
-        cursorBlink: true,
-        cursorStyle: 'block',
+        disableStdin: true,
+        cursorStyle: 'underline',
+        allowTransparency: true,
         fontFamily: 'JetBrains Mono, Menlo, Monaco, Consolas, "Courier New", monospace',
-        fontSize: 13,
-        lineHeight: 1.25,
-        convertEol: true,
+        fontSize: 12,
+        rows: 30,
         theme: {
           // Matches Pterodactyl's actual Console.tsx xterm theme exactly.
           background: '#131a20',
-          foreground: '#f4f4f5',
-          cursor: '#2DDAFD',
-          selectionBackground: '#FAF089',
+          cursor: 'transparent',
           black: '#131a20',
           red: '#E54B4B',
           green: '#9ECE58',
@@ -266,6 +125,7 @@ export class ServerTerminal implements AfterViewInit, OnDestroy {
           brightMagenta: '#C792EA',
           brightCyan: '#89DDFF',
           brightWhite: '#ffffff',
+          selection: '#FAF089',
         },
       });
 
@@ -275,174 +135,66 @@ export class ServerTerminal implements AfterViewInit, OnDestroy {
       this.terminal.open(el);
       this.fitAddon.fit();
 
-      // Listen for window/container resize
       if (typeof ResizeObserver !== 'undefined') {
         this.resizeObserver = new ResizeObserver(() => {
-          this.fitTerminal();
+          try {
+            this.fitAddon.fit();
+          } catch {
+            // Ignored if terminal container is hidden
+          }
         });
         this.resizeObserver.observe(el);
       }
 
       this.connected.set(true);
-
-      // Print Welcome Banner
-      this.printWelcomeBanner();
-
-      // Setup Key Event Listener
-      this.setupKeyHandlers();
+      this.printWelcomeLine();
     } catch (err: any) {
       console.error('[Terminal] Initialization failed:', err);
       this.toast.error('Failed to initialize Xterm terminal emulator.');
     }
   }
 
-  private printWelcomeBanner() {
-    if (!this.terminal) return;
-
-    const banner = [
-      '\x1b[1;32m   ______     __        ____                  __\x1b[0m',
-      '\x1b[1;32m  /__  /___  / /_____ _/ __ \\____ _____  ___  / /\x1b[0m',
-      '\x1b[1;32m    / // _ \\/ __/ __ `/ /_/ / __ `/ __ \\/ _ \\/ /\x1b[0m',
-      '\x1b[1;32m   / //  __/ /_/ /_/ / ____/ /_/ / / / /  __/ /\x1b[0m',
-      '\x1b[1;32m  /___/\\___/\\__/\\__,_/_/    \\__,_/_/ /_/\\___/_/\x1b[0m',
-      '\x1b[90m  --------------------------------------------------\x1b[0m',
-      '\x1b[1;37m  Container Interactive Terminal Emulator (xterm.js)\x1b[0m',
-      `\x1b[90m  Connected to:\x1b[0m \x1b[1;33mCloudflare R2 Bucket + Render Runtime\x1b[0m`,
-      '\x1b[90m  Type \x1b[1;32mhelp\x1b[90m for commands or press [Tab] to auto-complete.\x1b[0m',
-      '',
-    ];
-
-    for (const line of banner) {
-      this.terminal.writeln(line);
-    }
-
-    this.prompt();
-  }
-
-  private prompt() {
-    if (!this.terminal) return;
+  private prelude(): string {
     const name = (this.serverName() || 'app').toLowerCase();
-    // Bold yellow prompt -- matches Pterodactyl's TERMINAL_PRELUDE style
-    // ('\x1b[1;33m container@pterodactyl~ ') instead of the green one.
-    this.terminal.write(`\x1b[1;33mbot@zetapanel\x1b[0m:\x1b[1;34m~/${name}\x1b[0m$ `);
+    // Bold yellow prelude -- matches Pterodactyl's TERMINAL_PRELUDE exactly
+    // ('\x1b[1m\x1b[33mcontainer@pterodactyl~ ').
+    return `\x1b[1m\x1b[33m${name}@zetapanel~ \x1b[0m`;
   }
 
-  private setupKeyHandlers() {
+  private printWelcomeLine() {
     if (!this.terminal) return;
-
-    this.terminal.onData((data: string) => {
-      if (this.isBusy()) return;
-
-      const code = data.charCodeAt(0);
-
-      // Handle Enter (CR: 13, LF: 10)
-      if (code === 13 || code === 10) {
-        this.terminal.writeln('');
-        const cmd = this.inputBuffer.trim();
-        this.inputBuffer = '';
-        this.historyIndex = -1;
-
-        if (cmd) {
-          this.history.push(cmd);
-          this.executeCommand(cmd);
-        } else {
-          this.prompt();
-        }
-        return;
-      }
-
-      // Handle Backspace (127 or 8)
-      if (code === 127 || code === 8) {
-        if (this.inputBuffer.length > 0) {
-          this.inputBuffer = this.inputBuffer.slice(0, -1);
-          this.terminal.write('\b \b');
-        }
-        return;
-      }
-
-      // Handle Ctrl+C (3)
-      if (code === 3) {
-        this.terminal.writeln('^C');
-        this.inputBuffer = '';
-        this.historyIndex = -1;
-        this.prompt();
-        return;
-      }
-
-      // Handle Ctrl+L (12 - Clear)
-      if (code === 12) {
-        this.clearTerminal();
-        return;
-      }
-
-      // Handle Tab (9 - Auto-completion)
-      if (code === 9) {
-        this.handleTabCompletion();
-        return;
-      }
-
-      // Handle ANSI Arrow Keys (Escape sequence: \x1b[A, \x1b[B, \x1b[C, \x1b[D)
-      if (data.startsWith('\x1b[')) {
-        const arrow = data.substring(2);
-        if (arrow === 'A') {
-          // Up Arrow - Previous command
-          this.navigateHistory(-1);
-          return;
-        } else if (arrow === 'B') {
-          // Down Arrow - Next command
-          this.navigateHistory(1);
-          return;
-        }
-        return;
-      }
-
-      // Normal character input
-      if (data >= ' ' && data <= '~') {
-        this.inputBuffer += data;
-        this.terminal.write(data);
-      }
-    });
+    this.terminal.writeln(this.prelude() + 'Connected. Type a command below and press Enter.\u001b[0m');
   }
 
-  private handleTabCompletion() {
-    const current = this.inputBuffer.trim();
-    if (!current) return;
-
-    const matches = this.availableCompletions.filter((c) => c.startsWith(current));
-    if (matches.length === 1) {
-      const completion = matches[0].substring(current.length);
-      this.inputBuffer += completion;
-      this.terminal.write(completion);
-    } else if (matches.length > 1) {
-      this.terminal.writeln('');
-      this.terminal.writeln('\x1b[90m' + matches.join('   ') + '\x1b[0m');
-      this.prompt();
-      this.terminal.write(this.inputBuffer);
-    }
+  private writeOutput(line: string) {
+    if (!this.terminal) return;
+    this.terminal.writeln(this.prelude() + line.replace(/(?:\r\n|\r|\n)$/, '') + '\u001b[0m');
   }
 
-  private navigateHistory(direction: number) {
-    if (this.history.length === 0) return;
+  handleCommandKeyDown(e: KeyboardEvent) {
+    const input = e.target as HTMLInputElement;
 
-    if (this.historyIndex === -1) {
-      this.historyIndex = this.history.length;
+    if (e.key === 'ArrowUp') {
+      const newIndex = Math.min(this.historyIndex + 1, this.history.length - 1);
+      this.historyIndex = newIndex;
+      input.value = this.history[newIndex] || '';
+      e.preventDefault();
+      return;
     }
 
-    const nextIndex = this.historyIndex + direction;
-    if (nextIndex >= 0 && nextIndex <= this.history.length) {
-      this.historyIndex = nextIndex;
+    if (e.key === 'ArrowDown') {
+      const newIndex = Math.max(this.historyIndex - 1, -1);
+      this.historyIndex = newIndex;
+      input.value = newIndex === -1 ? '' : this.history[newIndex] || '';
+      return;
+    }
 
-      // Clear current input from terminal line
-      while (this.inputBuffer.length > 0) {
-        this.terminal.write('\b \b');
-        this.inputBuffer = this.inputBuffer.slice(0, -1);
-      }
-
-      if (this.historyIndex < this.history.length) {
-        const cmd = this.history[this.historyIndex];
-        this.inputBuffer = cmd;
-        this.terminal.write(cmd);
-      }
+    const command = input.value;
+    if (e.key === 'Enter' && command.trim().length > 0 && !this.isBusy()) {
+      this.history = [command, ...this.history].slice(0, 32);
+      this.historyIndex = -1;
+      input.value = '';
+      this.executeCommand(command.trim());
     }
   }
 
@@ -450,51 +202,22 @@ export class ServerTerminal implements AfterViewInit, OnDestroy {
     if (!this.terminal) return;
 
     if (command === 'clear') {
-      this.clearTerminal();
+      this.terminal.clear();
       return;
     }
 
     this.isBusy.set(true);
+    this.terminal.writeln(this.prelude() + '\x1b[2m$ ' + command + '\x1b[0m');
 
     try {
       const res = await this.serverService.execCommand(this.serverId(), command);
       if (res.output) {
-        this.terminal.writeln(res.output);
+        this.writeOutput(res.output);
       }
     } catch (err: any) {
-      this.terminal.writeln(`\x1b[31mError: ${err.message || 'Command execution failed'}\x1b[0m`);
+      this.terminal.writeln('\x1b[1m\x1b[41m' + (err.message || 'Command execution failed') + '\u001b[0m');
     } finally {
       this.isBusy.set(false);
-      this.prompt();
-    }
-  }
-
-  runPresetCommand(command: string) {
-    if (!this.terminal || this.isBusy()) return;
-    this.terminal.writeln(command);
-    this.executeCommand(command);
-  }
-
-  clearTerminal() {
-    if (!this.terminal) return;
-    this.terminal.clear();
-    this.inputBuffer = '';
-    this.prompt();
-  }
-
-  fitTerminal() {
-    if (this.fitAddon && this.terminal) {
-      try {
-        this.fitAddon.fit();
-      } catch {
-        // Ignored if terminal container is hidden
-      }
-    }
-  }
-
-  focusTerminal() {
-    if (this.terminal) {
-      this.terminal.focus();
     }
   }
 }
