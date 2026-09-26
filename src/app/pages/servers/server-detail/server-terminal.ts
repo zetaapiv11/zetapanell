@@ -125,7 +125,7 @@ export class ServerTerminal implements AfterViewInit, OnDestroy {
           brightMagenta: '#C792EA',
           brightCyan: '#89DDFF',
           brightWhite: '#ffffff',
-          selection: '#FAF089',
+          selectionBackground: '#FAF089',
         },
       });
 
