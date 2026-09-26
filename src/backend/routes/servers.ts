@@ -157,12 +157,13 @@ serversRouter.post('/', requirePermission('servers.create'), async (req: Authent
       templateFiles['index.js'] = `const http = require('http');\nconst port = process.env.PORT || 3000;\n\nconst server = http.createServer((req, res) => {\n  res.writeHead(200, { 'Content-Type': 'application/json' });\n  res.end(JSON.stringify({\n    message: 'Hello from ZetaPanel!',\n    server: '${name}',\n    uptime: process.uptime(),\n    timestamp: new Date().toISOString()\n  }));\n});\n\nserver.listen(port, () => {\n  console.log(\`[ZetaPanel] Server running on port \${port}\`);\n});`;
     }
 
-        // Initialize Git repository locally, then push it to a real GitHub repo —
+    // Initialize Git repository locally, then push it to a real GitHub repo —
     // Render's API rejects self-hosted git remotes, it only accepts
     // github.com/gitlab.com/bitbucket.org/cursor.com URLs.
     await gitBridge.initializeRepo(serverId, templateFiles);
     const githubRepo = await gitBridge.publishToGithub(serverId, name);
     finalRepoUrl = githubRepo.htmlUrl;
+
     // Also mirror initial files to Cloudflare R2 if configured
     try {
       for (const [fName, content] of Object.entries(templateFiles)) {
@@ -543,6 +544,20 @@ serversRouter.get('/:id/status', requirePermission('servers.read'), async (req: 
       error: `Could not retrieve status from Render: ${err.message}`,
       fallbackStatus: server.status,
     });
+  }
+});
+
+// GET /api/v1/servers/:id/metrics - CPU / Memory / Disk / Network usage from Render
+serversRouter.get('/:id/metrics', requirePermission('servers.read'), async (req: AuthenticatedRequest, res) => {
+  const server = getAuthorizedServer(req, res);
+  if (!server) return;
+
+  try {
+    const rangeMinutes = Math.max(5, Math.min(1440, Number(req.query['rangeMinutes']) || 30));
+    const metrics = await renderApi.getResourceMetrics(server.renderServiceId, rangeMinutes);
+    res.json({ object: 'metrics', data: metrics });
+  } catch (err: any) {
+    res.status(502).json({ error: `Could not retrieve metrics from Render: ${err.message}` });
   }
 });
 
