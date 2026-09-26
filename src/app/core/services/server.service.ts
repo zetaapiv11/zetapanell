@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { RenderDeployItem, ServerItem } from '../models/index.js';
+import { RenderDeployItem, ResourceMetrics, ServerItem } from '../models/index.js';
 import { AuthService } from './auth.service.js';
 
 @Injectable({
@@ -107,6 +107,16 @@ export class ServerService {
       )
     );
     return res.logs;
+  }
+
+  async getMetrics(id: string, rangeMinutes = 30): Promise<ResourceMetrics> {
+    const res = await firstValueFrom(
+      this.http.get<{ object: string; data: ResourceMetrics }>(
+        `/api/v1/servers/${id}/metrics?rangeMinutes=${rangeMinutes}`,
+        this.headers()
+      )
+    );
+    return res.data;
   }
 
   async getDeploys(id: string): Promise<RenderDeployItem[]> {
