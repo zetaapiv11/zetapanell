@@ -10,7 +10,7 @@
  * ZetaPanel's components use Tailwind's default "neutral" and "emerald"
  * color scales everywhere (bg-neutral-900, text-emerald-400, etc). Rather
  * than hand-editing every component, we redefine what those two scales
- * actually render as, here, once. Every existing neutral-*/emerald-* class
+ * actually render as, here, once. Every existing neutral-* / emerald-* class
  * in the app picks up the new colors automatically:
  *   - "neutral"  -> Pterodactyl's real blue-gray scale (HSL, from their
  *                   tailwind.config.js "gray"/"neutral" token)
