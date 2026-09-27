@@ -1,0 +1,142 @@
+// ZetaPanel Prisma Schema for PostgreSQL
+// Fully compliant with ZetaPanel Production Specification
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  USER
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum ServerStatus {
+  CREATING
+  BUILDING
+  DEPLOYING
+  ONLINE
+  FAILED
+  SUSPENDED
+  DELETED
+  UNKNOWN
+}
+
+enum ServiceType {
+  web_service
+  background_worker
+  private_service
+  cron_job
+}
+
+model User {
+  id           String        @id @default(uuid())
+  username     String        @unique
+  email        String        @unique
+  passwordHash String
+  role         UserRole      @default(USER)
+  status       UserStatus    @default(ACTIVE)
+  maxServers   Int           @default(5)
+  maxStorageMb Int           @default(1024)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  servers      Server[]
+  apiKeys      ApiKey[]
+  activityLogs ActivityLog[]
+}
+
+model Server {
+  id               String              @id @default(uuid())
+  userId           String
+  user             User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  renderServiceId  String              @unique
+  name             String
+  description      String?
+  runtime          String
+  serviceType      ServiceType
+  region           String
+  plan             String
+  repoType         String              @default("git")
+  repoUrl          String
+  branch           String              @default("main")
+  buildCommand     String
+  startCommand     String
+  preDeployCommand String?
+  healthCheckPath  String?
+  autoDeploy       Boolean             @default(true)
+  status           ServerStatus        @default(CREATING)
+  rawRenderStatus  String?
+  dashboardUrl     String?
+  serviceUrl       String?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  envVars          ServerEnvironment[]
+  deployments      Deployment[]
+  activityLogs     ActivityLog[]
+}
+
+model ServerEnvironment {
+  id        String   @id @default(uuid())
+  serverId  String
+  server    Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  key       String
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([serverId, key])
+}
+
+model Deployment {
+  id               String   @id @default(uuid())
+  serverId         String
+  server           Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  renderDeployId   String
+  status           String
+  commitMessage    String?
+  startedAt        DateTime @default(now())
+  finishedAt       DateTime?
+  durationSeconds  Int?
+}
+
+model ApiKey {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  keyPrefix   String
+  keyHash     String    @unique
+  permissions String[]
+  lastUsedAt  DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+model ActivityLog {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  serverId   String?
+  server     Server?  @relation(fields: [serverId], references: [id], onDelete: SetNull)
+  username   String
+  serverName String?
+  action     String
+  details    String
+  ip         String?
+  timestamp  DateTime @default(now())
+}
+
+model SystemSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}

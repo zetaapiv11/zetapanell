@@ -1,0 +1,8 @@
+{
+  "name": "ZetaPanel",
+  "description": "High-performance hosting control panel powered by Render API and Cloudflare R2 storage, inspired by Pterodactyl.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
