@@ -4,6 +4,15 @@
 @import "@xterm/xterm/css/xterm.css";
 @import "tailwindcss";
 
+/* Tailwind v4's automatic content-detection (which scans the project for
+ * .ts/.html files to know which utility classes to generate) doesn't always
+ * resolve correctly through Angular's PostCSS integration -- when it
+ * misses, the whole @tailwind utilities layer comes out empty and NO
+ * utility classes (bg-*, flex, rounded, p-*, etc) exist in the built CSS at
+ * all, even though the file itself builds without error. Pointing it at
+ * the app source explicitly removes that guesswork. */
+@source "./app/**/*.{ts,html}";
+
 /*
  * Pterodactyl-match theme.
  *
