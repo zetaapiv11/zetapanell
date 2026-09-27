@@ -481,12 +481,16 @@ export class RenderApiClient {
 
   // --- Resource Metrics (CPU / RAM / Disk / Network) ---
   async getResourceMetrics(serviceId: string, rangeMinutes = 30): Promise<ResourceMetricsSummary> {
-    const endTime = Math.floor(Date.now() / 1000);
-    const startTime = endTime - rangeMinutes * 60;
+    // Render's metrics endpoints require RFC3339 timestamps (e.g.
+    // "2026-09-27T02:09:35Z"), NOT epoch/unix seconds -- sending epoch
+    // integers gets silently rejected with a 400 "could not parse input for
+    // field startTime", which is why every metric used to come back empty.
+    const endTime = new Date();
+    const startTime = new Date(endTime.getTime() - rangeMinutes * 60 * 1000);
     // Finer resolution for short ranges, coarser for long ones so we don't
     // pull back thousands of points for a 24h+ view.
     const resolutionSeconds = rangeMinutes <= 30 ? 60 : rangeMinutes <= 180 ? 300 : 900;
-    const qs = `resource=${encodeURIComponent(serviceId)}&startTime=${startTime}&endTime=${endTime}&resolutionSeconds=${resolutionSeconds}`;
+    const qs = `resource=${encodeURIComponent(serviceId)}&startTime=${encodeURIComponent(startTime.toISOString())}&endTime=${encodeURIComponent(endTime.toISOString())}&resolutionSeconds=${resolutionSeconds}`;
 
     const fetchSeries = async (path: string): Promise<MetricSeries[]> => {
       try {
