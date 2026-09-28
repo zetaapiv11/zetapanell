@@ -11,8 +11,26 @@ export interface User {
   maxServers: number;
   maxStorageMb: number;
   plan?: string;
+  // Set when the password is reset via OTP. JWTs issued before this moment
+  // are rejected so a stolen session can't outlive a password reset.
+  passwordChangedAt?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export type OtpPurpose = 'register' | 'reset';
+
+export interface OtpRecord {
+  // 'register': random id handed to the registering browser.
+  // 'reset': `reset:<email>` (one active code per account).
+  id: string;
+  email: string; // lowercased
+  purpose: OtpPurpose;
+  codeHash: string; // HMAC of the code -- the plain code is never stored
+  expiresAt: number; // epoch ms
+  attempts: number;
+  // Only for 'register': the account to create once the email is verified.
+  payload?: { username: string; passwordHash: string };
 }
 
 export type ServerRuntime = 'node' | 'python' | 'docker' | 'go' | 'ruby' | 'elixir';
