@@ -5,14 +5,15 @@ interface RateLimitEntry {
   resetAt: number;
 }
 
-const hits = new Map<string, RateLimitEntry>();
-
 export function createRateLimiter(options: {
   windowMs: number;
   max: number;
   message?: string;
 }) {
   const { windowMs, max, message = 'Too many requests. Please try again later.' } = options;
+  // Each limiter keeps its own counters. (A shared map would make several
+  // limiters on one route -- or on different routes -- count each other's hits.)
+  const hits = new Map<string, RateLimitEntry>();
 
   return (req: Request, res: Response, next: NextFunction): void => {
     const key =
@@ -61,4 +62,12 @@ export const apiGeneralLimiter = createRateLimiter({
   windowMs: 60 * 1000,
   max: 200,
   message: 'API rate limit exceeded.',
+});
+
+// Endpoints that trigger an email (signup, resend, forgot password). Per-address
+// cooldowns live in services/otp.ts; this is the coarse per-IP backstop.
+export const emailSendLimiter = createRateLimiter({
+  windowMs: 10 * 60 * 1000,
+  max: 20,
+  message: 'Too many email requests. Please try again in a few minutes.',
 });
