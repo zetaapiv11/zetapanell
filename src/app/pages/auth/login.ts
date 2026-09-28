@@ -1,10 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service.js';
 import { PlatformConfigService } from '../../core/services/platform-config.service.js';
 import { ToastService } from '../../core/services/toast.service.js';
+
+type Mode = 'login' | 'register' | 'verify' | 'forgot' | 'reset';
 
 @Component({
   selector: 'app-login',
@@ -42,7 +44,7 @@ import { ToastService } from '../../core/services/toast.service.js';
 
         <!-- Title (matches LoginFormContainer's title) -->
         <h2 class="text-3xl text-center text-neutral-50 font-medium py-4">
-          {{ isRegister() ? 'Create an Account' : 'Login to Continue' }}
+          {{ title() }}
         </h2>
 
         @if (error()) {
@@ -64,11 +66,12 @@ import { ToastService } from '../../core/services/toast.service.js';
           </div>
 
           <div class="flex-1">
-            <!-- Mode Tabs -->
+            <!-- Mode Tabs (only on the login / register screens) -->
+            @if (mode() === 'login' || mode() === 'register') {
             <div class="flex items-center p-1 bg-neutral-100 rounded mb-5">
               <button
                 type="button"
-                (click)="isRegister.set(false)"
+                (click)="setMode('login')"
                 class="flex-1 py-1.5 text-xs font-semibold rounded transition-colors cursor-pointer"
                 [class.bg-white]="!isRegister()"
                 [class.shadow]="!isRegister()"
@@ -79,7 +82,7 @@ import { ToastService } from '../../core/services/toast.service.js';
               </button>
               <button
                 type="button"
-                (click)="isRegister.set(true)"
+                (click)="setMode('register')"
                 class="flex-1 py-1.5 text-xs font-semibold rounded transition-colors cursor-pointer"
                 [class.bg-white]="isRegister()"
                 [class.shadow]="isRegister()"
@@ -89,8 +92,10 @@ import { ToastService } from '../../core/services/toast.service.js';
                 Create Account
               </button>
             </div>
+            }
 
-            @if (!isRegister()) {
+            @switch (mode()) {
+              @case ('login') {
               <form [formGroup]="loginForm" (ngSubmit)="onLogin()" class="space-y-5">
                 <div>
                   <label class="block text-xs font-medium text-neutral-600 uppercase tracking-wide mb-1.5">Username or Email</label>
@@ -125,12 +130,17 @@ import { ToastService } from '../../core/services/toast.service.js';
                 </button>
 
                 <div class="text-center">
-                  <a class="text-xs text-neutral-400 tracking-wide uppercase hover:text-neutral-600 no-underline cursor-pointer">
+                  <button
+                    type="button"
+                    (click)="setMode('forgot')"
+                    class="text-xs text-neutral-400 tracking-wide uppercase hover:text-neutral-600 no-underline cursor-pointer bg-transparent border-0"
+                  >
                     Forgot password?
-                  </a>
+                  </button>
                 </div>
               </form>
-            } @else {
+              }
+              @case ('register') {
               <form [formGroup]="registerForm" (ngSubmit)="onRegister()" class="space-y-5">
                 <div>
                   <label class="block text-xs font-medium text-neutral-600 uppercase tracking-wide mb-1.5">Username</label>
@@ -172,7 +182,142 @@ import { ToastService } from '../../core/services/toast.service.js';
                     <span>Register</span>
                   }
                 </button>
+                <p class="text-[11px] text-neutral-400 text-center leading-relaxed">
+                  We'll email you a 6-digit code to verify your address.
+                </p>
               </form>
+              }
+              @case ('verify') {
+              <form [formGroup]="verifyForm" (ngSubmit)="onVerify()" class="space-y-5">
+                <p class="text-sm text-neutral-600 leading-relaxed">
+                  We sent a 6-digit code to
+                  <span class="font-semibold text-neutral-800 break-all">{{ pendingEmail() }}</span>.
+                  Enter it below to finish creating your account. The code expires in 10 minutes.
+                </p>
+                <div>
+                  <label [class]="labelCls">Verification Code</label>
+                  <input
+                    type="text"
+                    inputmode="numeric"
+                    autocomplete="one-time-code"
+                    maxlength="6"
+                    formControlName="code"
+                    placeholder="123456"
+                    (input)="onCodeInput(verifyForm.controls.code)"
+                    [class]="codeInputCls"
+                  />
+                </div>
+                <button type="submit" [disabled]="loading() || verifyForm.invalid" [class]="btnCls">
+                  @if (loading()) {
+                    <mat-icon class="text-sm animate-spin">refresh</mat-icon>
+                    <span>Verifying...</span>
+                  } @else {
+                    <span>Verify &amp; Create Account</span>
+                  }
+                </button>
+                <div class="flex items-center justify-between">
+                  <button type="button" (click)="setMode('register')" [class]="linkCls">
+                    Use a different email
+                  </button>
+                  <button
+                    type="button"
+                    (click)="onResendRegister()"
+                    [disabled]="cooldown() > 0 || loading()"
+                    [class]="linkCls"
+                  >
+                    {{ cooldown() > 0 ? 'Resend code in ' + cooldown() + 's' : 'Resend code' }}
+                  </button>
+                </div>
+              </form>
+              }
+              @case ('forgot') {
+              <form [formGroup]="forgotForm" (ngSubmit)="onForgot()" class="space-y-5">
+                <p class="text-sm text-neutral-600 leading-relaxed">
+                  Enter the email address on your account and we'll send you a 6-digit code to reset your password.
+                </p>
+                <div>
+                  <label [class]="labelCls">Email Address</label>
+                  <input
+                    type="email"
+                    formControlName="email"
+                    placeholder="user@example.com"
+                    [class]="inputCls"
+                  />
+                </div>
+                <button type="submit" [disabled]="loading() || forgotForm.invalid" [class]="btnCls">
+                  @if (loading()) {
+                    <mat-icon class="text-sm animate-spin">refresh</mat-icon>
+                    <span>Sending...</span>
+                  } @else {
+                    <span>Send Reset Code</span>
+                  }
+                </button>
+                <div class="text-center">
+                  <button type="button" (click)="setMode('login')" [class]="linkCls">Back to login</button>
+                </div>
+              </form>
+              }
+              @case ('reset') {
+              <form [formGroup]="resetForm" (ngSubmit)="onReset()" class="space-y-5">
+                <p class="text-sm text-neutral-600 leading-relaxed">
+                  If an account exists for
+                  <span class="font-semibold text-neutral-800 break-all">{{ pendingEmail() }}</span>,
+                  we sent a 6-digit code. Enter it below with your new password. The code expires in 10 minutes.
+                </p>
+                <div>
+                  <label [class]="labelCls">Reset Code</label>
+                  <input
+                    type="text"
+                    inputmode="numeric"
+                    autocomplete="one-time-code"
+                    maxlength="6"
+                    formControlName="code"
+                    placeholder="123456"
+                    (input)="onCodeInput(resetForm.controls.code)"
+                    [class]="codeInputCls"
+                  />
+                </div>
+                <div>
+                  <label [class]="labelCls">New Password</label>
+                  <input
+                    type="password"
+                    formControlName="password"
+                    autocomplete="new-password"
+                    placeholder="Min 6 characters"
+                    [class]="inputCls"
+                  />
+                </div>
+                <div>
+                  <label [class]="labelCls">Confirm New Password</label>
+                  <input
+                    type="password"
+                    formControlName="confirm"
+                    autocomplete="new-password"
+                    placeholder="Repeat new password"
+                    [class]="inputCls"
+                  />
+                </div>
+                <button type="submit" [disabled]="loading() || resetForm.invalid" [class]="btnCls">
+                  @if (loading()) {
+                    <mat-icon class="text-sm animate-spin">refresh</mat-icon>
+                    <span>Updating...</span>
+                  } @else {
+                    <span>Reset Password</span>
+                  }
+                </button>
+                <div class="flex items-center justify-between">
+                  <button type="button" (click)="setMode('login')" [class]="linkCls">Back to login</button>
+                  <button
+                    type="button"
+                    (click)="onResendReset()"
+                    [disabled]="cooldown() > 0 || loading()"
+                    [class]="linkCls"
+                  >
+                    {{ cooldown() > 0 ? 'Resend code in ' + cooldown() + 's' : 'Resend code' }}
+                  </button>
+                </div>
+              </form>
+              }
             }
           </div>
         </div>
@@ -191,9 +336,35 @@ export class Login {
   private toast = inject(ToastService);
   readonly platformConfig = inject(PlatformConfigService);
 
-  isRegister = signal(false);
+  private destroyRef = inject(DestroyRef);
+
+  mode = signal<Mode>('login');
+  isRegister = computed(() => this.mode() === 'register');
   loading = signal(false);
   error = signal<string | null>(null);
+
+  // Email the OTP was sent to (shown on the verify / reset screens).
+  pendingEmail = signal('');
+  // Seconds until "Resend code" is available again.
+  cooldown = signal(0);
+
+  private registrationId = '';
+  private cooldownTimer: ReturnType<typeof setInterval> | null = null;
+
+  readonly title = computed(() => {
+    switch (this.mode()) {
+      case 'register':
+        return 'Create an Account';
+      case 'verify':
+        return 'Verify Your Email';
+      case 'forgot':
+        return 'Forgot Password';
+      case 'reset':
+        return 'Reset Password';
+      default:
+        return 'Login to Continue';
+    }
+  });
 
   readonly startingPlan = computed(() => {
     const plans = this.platformConfig.plans();
@@ -201,8 +372,20 @@ export class Login {
     return [...plans].sort((a, b) => a.priceIdr - b.priceIdr)[0];
   });
 
+  // Shared styles for the OTP / reset screens.
+  readonly labelCls = 'block text-xs font-medium text-neutral-600 uppercase tracking-wide mb-1.5';
+  readonly inputCls =
+    'w-full bg-white border-2 border-neutral-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 rounded px-3.5 py-2.5 text-sm text-neutral-800 placeholder-neutral-400 outline-none transition-all';
+  readonly codeInputCls =
+    'w-full bg-white border-2 border-neutral-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 rounded px-3.5 py-2.5 text-2xl text-center font-mono tracking-[0.5em] text-neutral-800 placeholder-neutral-300 outline-none transition-all';
+  readonly btnCls =
+    'w-full py-2.5 px-4 rounded bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-blue-50 text-sm font-semibold tracking-wide transition-all flex items-center justify-center gap-2 cursor-pointer';
+  readonly linkCls =
+    'text-xs text-neutral-400 tracking-wide uppercase hover:text-neutral-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-neutral-400 cursor-pointer bg-transparent border-0 p-0';
+
   constructor() {
     this.platformConfig.load();
+    this.destroyRef.onDestroy(() => this.clearCooldown());
   }
 
   loginForm = new FormGroup({
@@ -216,6 +399,57 @@ export class Login {
     password: new FormControl('', [Validators.required, Validators.minLength(6)]),
   });
 
+  verifyForm = new FormGroup({
+    code: new FormControl('', [Validators.required, Validators.pattern(/^\d{6}$/)]),
+  });
+
+  forgotForm = new FormGroup({
+    email: new FormControl('', [Validators.required, Validators.email]),
+  });
+
+  resetForm = new FormGroup({
+    code: new FormControl('', [Validators.required, Validators.pattern(/^\d{6}$/)]),
+    password: new FormControl('', [Validators.required, Validators.minLength(6)]),
+    confirm: new FormControl('', [Validators.required]),
+  });
+
+  setMode(mode: Mode) {
+    this.error.set(null);
+    this.clearCooldown();
+    this.mode.set(mode);
+  }
+
+  /** Keeps OTP inputs to digits only (handles paste of "123 456" too). */
+  onCodeInput(control: FormControl<string | null>) {
+    const digits = (control.value ?? '').replace(/\D/g, '').slice(0, 6);
+    if (digits !== control.value) control.setValue(digits);
+  }
+
+  private startCooldown(seconds: number) {
+    this.clearCooldown();
+    this.cooldown.set(seconds);
+    this.cooldownTimer = setInterval(() => {
+      const next = this.cooldown() - 1;
+      if (next <= 0) {
+        this.clearCooldown();
+      } else {
+        this.cooldown.set(next);
+      }
+    }, 1000);
+  }
+
+  private clearCooldown() {
+    if (this.cooldownTimer) {
+      clearInterval(this.cooldownTimer);
+      this.cooldownTimer = null;
+    }
+    this.cooldown.set(0);
+  }
+
+  private errorMessage(err: any, fallback: string): string {
+    return err?.error?.error || err?.message || fallback;
+  }
+
   async onLogin() {
     if (this.loginForm.invalid) return;
     this.loading.set(true);
@@ -227,7 +461,7 @@ export class Login {
       this.toast.success('Welcome back to ZetaPanel!');
       this.router.navigate(['/dashboard']);
     } catch (err: any) {
-      this.error.set(err.error?.error || err.message || 'Login failed.');
+      this.error.set(this.errorMessage(err, 'Login failed.'));
     } finally {
       this.loading.set(false);
     }
@@ -240,11 +474,112 @@ export class Login {
 
     const { username, email, password } = this.registerForm.value;
     try {
-      await this.auth.register(username!, email!, password!);
-      this.toast.success('Account created successfully!');
+      // Step 1: emails a code. The account is created only after step 2 (onVerify).
+      const pending = await this.auth.register(username!, email!, password!);
+      this.registrationId = pending.registrationId;
+      this.pendingEmail.set(pending.email);
+      this.verifyForm.reset({ code: '' });
+      this.setMode('verify');
+      this.startCooldown(pending.resendAfterSeconds);
+      this.toast.info(`We sent a 6-digit code to ${pending.email}.`);
+    } catch (err: any) {
+      this.error.set(this.errorMessage(err, 'Registration failed.'));
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  async onVerify() {
+    if (this.verifyForm.invalid) return;
+    this.loading.set(true);
+    this.error.set(null);
+
+    try {
+      await this.auth.verifyRegistration(this.registrationId, this.verifyForm.value.code!);
+      this.toast.success('Email verified. Welcome to ZetaPanel!');
       this.router.navigate(['/dashboard']);
     } catch (err: any) {
-      this.error.set(err.error?.error || err.message || 'Registration failed.');
+      this.error.set(this.errorMessage(err, 'Verification failed.'));
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  async onResendRegister() {
+    if (this.cooldown() > 0 || this.loading()) return;
+    this.loading.set(true);
+    this.error.set(null);
+
+    try {
+      const res = await this.auth.resendRegistrationCode(this.registrationId);
+      this.verifyForm.reset({ code: '' });
+      this.startCooldown(res.resendAfterSeconds);
+      this.toast.info('A new code has been sent.');
+    } catch (err: any) {
+      if (err?.status === 429 && err?.error?.retryAfterSeconds) {
+        this.startCooldown(err.error.retryAfterSeconds);
+      }
+      this.error.set(this.errorMessage(err, 'Could not resend the code.'));
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  async onForgot() {
+    if (this.forgotForm.invalid) return;
+    this.loading.set(true);
+    this.error.set(null);
+
+    const email = this.forgotForm.value.email!.trim();
+    try {
+      const res = await this.auth.forgotPassword(email);
+      this.pendingEmail.set(email);
+      this.resetForm.reset({ code: '', password: '', confirm: '' });
+      this.setMode('reset');
+      this.startCooldown(res.resendAfterSeconds);
+    } catch (err: any) {
+      this.error.set(this.errorMessage(err, 'Could not send the reset code.'));
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  async onResendReset() {
+    if (this.cooldown() > 0 || this.loading()) return;
+    this.loading.set(true);
+    this.error.set(null);
+
+    try {
+      const res = await this.auth.forgotPassword(this.pendingEmail());
+      this.startCooldown(res.resendAfterSeconds);
+      this.toast.info('If an account exists, a new code has been sent.');
+    } catch (err: any) {
+      this.error.set(this.errorMessage(err, 'Could not resend the code.'));
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  async onReset() {
+    if (this.resetForm.invalid) return;
+
+    const { code, password, confirm } = this.resetForm.value;
+    if (password !== confirm) {
+      this.error.set('Passwords do not match.');
+      return;
+    }
+
+    this.loading.set(true);
+    this.error.set(null);
+
+    try {
+      await this.auth.resetPassword(this.pendingEmail(), code!, password!);
+      const email = this.pendingEmail();
+      this.loginForm.reset({ login: email, password: '' });
+      this.setMode('login');
+      this.toast.success('Password updated. Please log in with your new password.');
+    } catch (err: any) {
+      this.error.set(this.errorMessage(err, 'Could not reset the password.'));
     } finally {
       this.loading.set(false);
     }
