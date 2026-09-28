@@ -56,6 +56,13 @@ R2_ACCESS_KEY_ID=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 R2_SECRET_ACCESS_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 R2_BUCKET=zetapanel-servers
 
+# Email (SMTP2GO HTTP API) -- required in production for signup OTP and
+# password reset. SMTP2GO_SENDER must be a verified sender/domain in SMTP2GO.
+# In development (NODE_ENV != production) with these unset, codes are printed
+# to the server console instead of emailed.
+SMTP2GO_API_KEY=api-xxxxxxxxxxxxxxxxxxxxxxxx
+SMTP2GO_SENDER=no-reply@yourdomain.com
+
 # ZetaPanel URL (optional on Render — falls back to Render's
 # auto-injected RENDER_EXTERNAL_URL if unset; set this only for a
 # custom domain or local dev)
@@ -79,6 +86,13 @@ npm run serve:ssr:app
 > Note: `npm start` runs `ng serve` (the dev server). For production, always
 > use `npm run serve:ssr:app` after `npm run build` — that's what `render.yaml`
 > uses as the `startCommand`.
+
+## Email OTP (signup verification & password reset)
+
+- **Sign-up** is two steps: the form emails a 6-digit code, and the account is only created once the code is verified.
+- **Forgot password** emails a 6-digit code; entering it with a new password resets the account and signs out existing sessions.
+- Codes expire after 10 minutes, are single-use, allow 5 wrong guesses, and can be re-sent once per 60 seconds (max 5 per hour per address). Only an HMAC of the code is stored.
+- Mail is sent through the [SMTP2GO HTTP API](https://developers.smtp2go.com/docs/send-an-email) using `SMTP2GO_API_KEY` and `SMTP2GO_SENDER` (see above).
 
 ## Default Super Admin Account
 
