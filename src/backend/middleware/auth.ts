@@ -64,7 +64,7 @@ export function authMiddleware(
 
   // Verify JWT
   try {
-    const decoded = jwt.verify(token, config.jwtSecret) as { userId: string };
+    const decoded = jwt.verify(token, config.jwtSecret) as { userId: string; iat?: number };
     const user = db.getUserById(decoded.userId);
 
     if (!user) {
@@ -74,6 +74,15 @@ export function authMiddleware(
 
     if (user.status === 'SUSPENDED') {
       res.status(403).json({ error: 'Your account has been suspended by an administrator.' });
+      return;
+    }
+
+    if (
+      user.passwordChangedAt &&
+      decoded.iat !== undefined &&
+      decoded.iat < Math.floor(new Date(user.passwordChangedAt).getTime() / 1000)
+    ) {
+      res.status(401).json({ error: 'Your password was changed. Please log in again.' });
       return;
     }
 
