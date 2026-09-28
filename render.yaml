@@ -71,5 +71,11 @@ services:
       # domains like panel.zeetasi.qzz.io if APP_URL isn't also set to it.
       - key: NG_ALLOWED_HOSTS
         sync: false
+      # Transactional email (signup OTP + password reset) via SMTP2GO's HTTP API.
+      # SMTP2GO_SENDER must be a verified sender/domain in your SMTP2GO account.
+      - key: SMTP2GO_API_KEY
+        sync: false
+      - key: SMTP2GO_SENDER
+        sync: false # e.g. no-reply@yourdomain.com
       - key: ADMIN_WHATSAPP_NUMBER
-        value: "6285762557515" # digits only, country code first (no +) -- shown on /pricing & quota messages
+        value: "6283195426349" # digits only, country code first (no +) -- shown on /pricing & quota messages
