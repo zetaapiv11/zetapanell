@@ -5,6 +5,7 @@ import { config } from '../config.js';
 import {
   ActivityLogRecord,
   ApiKeyRecord,
+  OtpRecord,
   ServerRecord,
   SystemSettings,
   User,
@@ -15,6 +16,7 @@ interface DatabaseSchema {
   servers: ServerRecord[];
   apiKeys: ApiKeyRecord[];
   activityLogs: ActivityLogRecord[];
+  otps: OtpRecord[];
   settings: SystemSettings;
 }
 
@@ -84,6 +86,7 @@ class Database {
           servers: parsed.servers || [],
           apiKeys: parsed.apiKeys || [],
           activityLogs: parsed.activityLogs || [],
+          otps: parsed.otps || [],
           settings: { ...DEFAULT_SETTINGS, ...(parsed.settings || {}) },
         };
       }
@@ -96,6 +99,7 @@ class Database {
       servers: [],
       apiKeys: [],
       activityLogs: [],
+      otps: [],
       settings: { ...DEFAULT_SETTINGS },
     };
   }
@@ -282,6 +286,30 @@ class Database {
       this.data.activityLogs = this.data.activityLogs.slice(-2000);
     }
     this.save();
+  }
+
+  // --- OTP codes (registration verification + password reset) ---
+  getOtp(id: string): OtpRecord | undefined {
+    const rec = this.data.otps.find((o) => o.id === id);
+    if (rec && rec.expiresAt < Date.now()) {
+      this.deleteOtp(id);
+      return undefined;
+    }
+    return rec;
+  }
+
+  saveOtp(record: OtpRecord): OtpRecord {
+    const now = Date.now();
+    this.data.otps = this.data.otps.filter((o) => o.id !== record.id && o.expiresAt >= now);
+    this.data.otps.push(record);
+    this.save();
+    return record;
+  }
+
+  deleteOtp(id: string): void {
+    const before = this.data.otps.length;
+    this.data.otps = this.data.otps.filter((o) => o.id !== id);
+    if (this.data.otps.length !== before) this.save();
   }
 
   // --- Settings ---
