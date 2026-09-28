@@ -43,6 +43,12 @@ export const config = {
   // localhost fallback for local dev.
   appUrl: process.env['APP_URL'] || process.env['RENDER_EXTERNAL_URL'] || 'http://localhost:3000',
 
+  // Transactional email via the SMTP2GO HTTP API (registration OTP + password
+  // reset). SMTP2GO_SENDER must be a verified sender address/domain in your
+  // SMTP2GO account, e.g. no-reply@yourdomain.com.
+  smtp2goApiKey: process.env['SMTP2GO_API_KEY'] || '',
+  smtp2goSender: process.env['SMTP2GO_SENDER'] || '',
+
   // Sales/contact info shown on the public pricing page & quota-limit messages.
   // Set these as Render env vars so the panel owner can change them without a
   // code change/redeploy.
